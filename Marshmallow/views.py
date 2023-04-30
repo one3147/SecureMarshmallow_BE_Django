@@ -42,3 +42,16 @@ def logout(request):
         return JsonResponse({'success': True})
     else:
         return JsonResponse({'success': False})
+
+def signup(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        id = request.POST.get('id')
+        email = request.POST.get('email')
+        user = Marshmallow_User.objects.create_user(Name=username, Password=password, email=email, id=id)
+        user.save()
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
+
