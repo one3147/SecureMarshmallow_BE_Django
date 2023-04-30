@@ -55,3 +55,64 @@ def signup(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
+def writePost(request):
+    if request.method == 'POST':
+        idx = request.POST.get('idx')
+        title = request.POST.get('title')
+        contents = request.POST.get('contents')
+        password = request.POST.get('password')
+        if password:
+            board = Board.objects.create_board(idx=idx,title=title,contents=contents,password=password)
+        else:
+            board = Board.objects.create_board(idx=idx,title=title,contents=contents)
+        board.save()
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
+
+def viewPost(request):
+    if request.method == 'GET':
+        idx = request.GET.get('idx')
+        try:
+            post = Board.objects.get(idx=idx)
+            return post
+        except Board.DoesNotExist:
+            return JsonResponse({'error': 'Post does not exist'})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
+
+def editPost(request, pk):
+    board = get_object_or_404(Board, pk=pk)
+    if request.method == 'POST':
+        idx = request.POST.get('idx')
+        title = request.POST.get('title')
+        contents = request.POST.get('contents')
+        password = request.POST.get('password')
+        if password:
+            board.idx = idx
+            board.title = title
+            board.contents = contents
+            board.password = password
+        else:
+            board.idx = idx
+            board.title = title
+            board.contents = contents
+        board.save()
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'error': "error"})
+
+def deletePost(request):
+    if request.method == 'POST':
+        idx = request.POST.get('idx')
+        password = request.POST.get('password')
+        board = Board.get_board(idx)
+        if board is None:
+            return JsonResponse({'error': 'Post does not exist.'})
+        elif board.password != password:
+            return JsonResponse({'error': 'Wrong password.'})
+        else:
+            board.delete_board()
+            return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})

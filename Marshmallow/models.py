@@ -30,3 +30,5 @@ class Board(models.Model):
     @classmethod
     def search_posts(cls, keyword):
         return cls.objects.filter(title__icontains=keyword)
+
+#모델 구현
