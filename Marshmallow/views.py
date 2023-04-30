@@ -124,3 +124,18 @@ def search_posts(request):
         return JsonResponse({'result': f'{posts}'})
     else:
         return JsonResponse({'error': 'Invalid request method'})
+
+def get_posts(request):
+    if request.method == 'GET':
+        paginator = Paginator(Board.objects.all(), 10)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        posts = page_obj.object_list
+        response_data = {
+            'count': paginator.count,
+            'num_pages': paginator.num_pages,
+            'posts': [{'title': post.title, 'contents': post.contents} for post in posts],
+        }
+        return JsonResponse(response_data)
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
