@@ -116,3 +116,11 @@ def deletePost(request):
             return JsonResponse({'success': True})
     else:
         return JsonResponse({'error': 'Invalid request method'})
+
+def search_posts(request):
+    if request.method == 'GET':
+        search_word = request.GET.get('search_word')
+        posts = Board.search_posts(search_word)
+        return JsonResponse({'result': f'{posts}'})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})

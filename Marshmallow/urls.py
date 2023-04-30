@@ -10,5 +10,6 @@ urlpatterns = [
     path('writePost/', views.writePost),
     path('editPost/<int:pk>/', views.editPost),
     path('deletePost/', views.deletePost),
+    path('searchPost/',views.search_posts),
 
 ]
