@@ -15,3 +15,23 @@ def default(request):
 
 def index(request):
     return HttpResponse("200 OK")
+
+def login(request):
+    if request.method == 'POST':
+        id = request.POST.get('id')
+        password = request.POST.get('password')
+        user = Marshmallow_User.objects.create_user('username', 'email', 'password')
+        user = authenticate(request, id=id, password=password)
+        if user is not None:
+            #login(request, user)
+            # 토큰 발급
+            #refresh = RefreshToken.for_user(user)
+            return JsonResponse({
+                #'refresh': str(refresh),
+                #'access': str(refresh.access_token),
+                'success': 'ok'
+            })
+        else:
+            return JsonResponse({'success': f'{id} {password}'})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
