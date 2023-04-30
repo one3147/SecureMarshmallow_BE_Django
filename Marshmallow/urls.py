@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 app_name = "Marshmallow"
-urlpatterns = [
+urlpatterns = [ #매핑 패탄
     path('login/', views.login),
     path('logout/', views.logout),
     path('signup/', views.signup),

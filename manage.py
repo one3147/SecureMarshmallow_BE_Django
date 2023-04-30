@@ -4,7 +4,7 @@ import os
 import sys
 
 
-def main():
+def main(): #메인 함수
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     try:
@@ -19,4 +19,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main() #실행

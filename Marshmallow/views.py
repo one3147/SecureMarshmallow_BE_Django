@@ -10,25 +10,25 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from django.core.paginator import Paginator
 from Marshmallow.models import Marshmallow_User
 
-def default(request):
+def default(request): #Defualt
     return HttpResponse("api")
 
-def index(request):
+
+def index(request): #기본 페이지
     return HttpResponse("200 OK")
 
-def login(request):
+def login(request): #로그인
     if request.method == 'POST':
         id = request.POST.get('id')
         password = request.POST.get('password')
         user = Marshmallow_User.objects.create_user('username', 'email', 'password')
         user = authenticate(request, id=id, password=password)
         if user is not None:
-            #login(request, user)
-            # 토큰 발급
-            #refresh = RefreshToken.for_user(user)
-            return JsonResponse({
-                #'refresh': str(refresh),
-                #'access': str(refresh.access_token),
+            login(request, user) #로그인 처리
+            refresh = RefreshToken.for_user(user) #토큰 발급
+            return JsonResponse({ #반환
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
                 'success': 'ok'
             })
         else:
@@ -36,14 +36,14 @@ def login(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def logout(request):
-    if request.user.is_authenticated:
+def logout(request): #로그아웃
+    if request.user.is_authenticated: #세션 파기
         logout(request)
         return JsonResponse({'success': True})
     else:
         return JsonResponse({'success': False})
 
-def signup(request):
+def signup(request): #회원가입
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -55,7 +55,7 @@ def signup(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def writePost(request):
+def writePost(request): #글 작성
     if request.method == 'POST':
         idx = request.POST.get('idx')
         title = request.POST.get('title')
@@ -70,7 +70,7 @@ def writePost(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def viewPost(request):
+def viewPost(request): #글 조회
     if request.method == 'GET':
         idx = request.GET.get('idx')
         try:
@@ -81,7 +81,7 @@ def viewPost(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def editPost(request, pk):
+def editPost(request, pk): #글 수정
     board = get_object_or_404(Board, pk=pk)
     if request.method == 'POST':
         idx = request.POST.get('idx')
@@ -102,7 +102,7 @@ def editPost(request, pk):
     else:
         return JsonResponse({'error': "error"})
 
-def deletePost(request):
+def deletePost(request): #글 삭제
     if request.method == 'POST':
         idx = request.POST.get('idx')
         password = request.POST.get('password')
@@ -117,7 +117,7 @@ def deletePost(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def search_posts(request):
+def search_posts(request): #글 검색
     if request.method == 'GET':
         search_word = request.GET.get('search_word')
         posts = Board.search_posts(search_word)
@@ -125,7 +125,7 @@ def search_posts(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def CreatePassword(request):
+def CreatePassword(request): #비밀번호 생성
     if request.method == 'GET':
         alphabet = string.ascii_letters + string.digits + string.punctuation
         password = ''.join(secrets.choice(alphabet) for i in range(8))
@@ -133,7 +133,7 @@ def CreatePassword(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def get_posts(request):
+def get_posts(request): #페이징
     if request.method == 'GET':
         paginator = Paginator(Board.objects.all(), 10)
         page_number = request.GET.get('page', 1)
@@ -148,7 +148,7 @@ def get_posts(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def profile(request):
+def profile(request): #유저 프로필
     user_id = request.GET.get('id')
     user = get_object_or_404(Marshmallow_User, id=id)
     if request.method == 'GET':
@@ -158,5 +158,5 @@ def profile(request):
 
 
 
-class RefreshTokenView(TokenRefreshView):
+class RefreshTokenView(TokenRefreshView): #토큰 클래스
     pass
