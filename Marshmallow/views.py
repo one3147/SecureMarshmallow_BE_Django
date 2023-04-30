@@ -139,3 +139,16 @@ def get_posts(request):
         return JsonResponse(response_data)
     else:
         return JsonResponse({'error': 'Invalid request method'})
+
+def profile(request):
+    user_id = request.GET.get('id')
+    user = get_object_or_404(Marshmallow_User, id=id)
+    if request.method == 'GET':
+        return user
+    else:
+        return JsonResponse({'error' : 'Invalid request method'})
+
+
+
+class RefreshTokenView(TokenRefreshView):
+    pass
