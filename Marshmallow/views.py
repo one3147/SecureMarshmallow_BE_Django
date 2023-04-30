@@ -125,6 +125,14 @@ def search_posts(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
+def CreatePassword(request):
+    if request.method == 'GET':
+        alphabet = string.ascii_letters + string.digits + string.punctuation
+        password = ''.join(secrets.choice(alphabet) for i in range(8))
+        return JsonResponse({'Password' : f"{password}"})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
+
 def get_posts(request):
     if request.method == 'GET':
         paginator = Paginator(Board.objects.all(), 10)

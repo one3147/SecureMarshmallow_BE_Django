@@ -11,5 +11,6 @@ urlpatterns = [
     path('deletePost/', views.deletePost),
     path('searchPost/', views.search_posts),
     path('profile/', views.profile),
+    path('createpassword/',views.CreatePassword),
 
 ]
