@@ -35,3 +35,10 @@ def login(request):
             return JsonResponse({'success': f'{id} {password}'})
     else:
         return JsonResponse({'error': 'Invalid request method'})
+
+def logout(request):
+    if request.user.is_authenticated:
+        logout(request)
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'success': False})

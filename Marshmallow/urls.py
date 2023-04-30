@@ -4,4 +4,5 @@ app_name = "Marshmallow"
 urlpatterns = [
     path('', views.index),
     path('login/', views.login),
+    path('logout/', views.logout),
 ]
