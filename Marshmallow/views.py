@@ -85,13 +85,13 @@ def viewPost(request): #글 조회
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def editPost(request, pk): #글 수정
-    board = get_object_or_404(Board, pk=pk)
+def editPost(request): #글 수정
     if request.method == 'POST':
         idx = request.POST.get('idx')
         title = request.POST.get('title')
         contents = request.POST.get('contents')
         password = request.POST.get('password')
+        board = Board.objects.get(idx=idx)
         if password:
             board.idx = idx
             board.title = title
