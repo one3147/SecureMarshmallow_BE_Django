@@ -66,20 +66,20 @@ def writePost(request): #글 작성
         contents = request.POST.get('contents')
         password = request.POST.get('password')
         if password:
-            board = Board.objects.create_board(idx=idx,title=title,contents=contents,password=password)
+            board = Board(idx=idx,title=title,contents=contents,password=password)
         else:
-            board = Board.objects.create_board(idx=idx,title=title,contents=contents)
+            board = Board(idx=idx,title=title,contents=contents)
         board.save()
         return JsonResponse({'success': True})
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
 def viewPost(request): #글 조회
-    if request.method == 'GET':
-        idx = request.GET.get('idx')
+    if request.method == 'POST':
+        idx = request.POST.get('idx')
         try:
             post = Board.objects.get(idx=idx)
-            return post
+            return JsonResponse({'success': 'True', 'post': f'{post}'})
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
     else:
