@@ -9,6 +9,10 @@ import string
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.core.paginator import Paginator
 from Marshmallow.models import Marshmallow_User
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import check_password
+from .models import Marshmallow_User
+
 
 def default(request): #Defualt
     return HttpResponse("api")
@@ -17,26 +21,26 @@ def default(request): #Defualt
 def index(request): #기본 페이지
     return HttpResponse("200 OK")
 
-def login(request): #로그인
+
+def user_login(request):
     if request.method == 'POST':
         id = request.POST.get('id')
         password = request.POST.get('password')
-        user = Marshmallow_User.objects.create_user('username', 'email', 'password')
-        user = authenticate(request, id=id, password=password)
-        if user is not None:
-            login(request, user) #로그인 처리
-            refresh = RefreshToken.for_user(user) #토큰 발급
-            return JsonResponse({ #반환
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'success': 'ok'
-            })
+        try:
+            user = Marshmallow_User.objects.get(id=id)
+        except Marshmallow_User.DoesNotExist:
+            return JsonResponse({'success': 'fail to get user info'})
+
+        if password == user.password:
+            login(request, user)
+            response = JsonResponse({'success': f'{request.user}'})
+            return response
         else:
-            return JsonResponse({'success': f'{id} {password}'})
+            return JsonResponse({'success': 'fail to login'})
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def logout(request): #로그아웃
+def user_logout(request): #로그아웃
     if request.user.is_authenticated: #세션 파기
         logout(request)
         return JsonResponse({'success': True})
@@ -49,7 +53,7 @@ def signup(request): #회원가입
         password = request.POST.get('password')
         id = request.POST.get('id')
         email = request.POST.get('email')
-        user = Marshmallow_User.objects.create_user(Name=username, Password=password, email=email, id=id)
+        user = Marshmallow_User(name=username, password=password, email=email, id=id)
         user.save()
         return JsonResponse({'success': True})
     else:
@@ -126,7 +130,7 @@ def search_posts(request): #글 검색
         return JsonResponse({'error': 'Invalid request method'})
 
 def CreatePassword(request): #비밀번호 생성
-    if request.method == 'GET':
+    if request.method == 'POST':
         alphabet = string.ascii_letters + string.digits + string.punctuation
         password = ''.join(secrets.choice(alphabet) for i in range(8))
         return JsonResponse({'Password' : f"{password}"})
