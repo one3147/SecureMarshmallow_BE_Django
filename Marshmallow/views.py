@@ -138,9 +138,9 @@ def CreatePassword(request): #비밀번호 생성
         return JsonResponse({'error': 'Invalid request method'})
 
 def get_posts(request): #페이징
-    if request.method == 'GET':
+    if request.method == 'POST':
         paginator = Paginator(Board.objects.all(), 10)
-        page_number = request.GET.get('page', 1)
+        page_number = request.POST.get('page', 1)
         page_obj = paginator.get_page(page_number)
         posts = page_obj.object_list
         response_data = {
