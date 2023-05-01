@@ -153,10 +153,10 @@ def get_posts(request): #페이징
         return JsonResponse({'error': 'Invalid request method'})
 
 def profile(request): #유저 프로필
-    user_id = request.GET.get('id')
-    user = get_object_or_404(Marshmallow_User, id=id)
-    if request.method == 'GET':
-        return user
+    if request.method == 'POST':
+        id = request.POST.get('id')
+        user = get_object_or_404(Marshmallow_User, id=id)
+        return JsonResponse({'user': f'{user}'})
     else:
         return JsonResponse({'error' : 'Invalid request method'})
 
