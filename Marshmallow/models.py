@@ -41,8 +41,6 @@ class Board(models.Model): #게시글 모델
             return cls.objects.get(idx=idx)
         except cls.DoesNotExist:
             return None
-
-    @classmethod
     def delete_board(self):
         self.delete()
 

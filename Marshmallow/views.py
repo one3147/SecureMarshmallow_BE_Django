@@ -110,7 +110,7 @@ def deletePost(request): #글 삭제
     if request.method == 'POST':
         idx = request.POST.get('idx')
         password = request.POST.get('password')
-        board = Board.get_board(idx)
+        board = Board.objects.get(idx=idx)
         if board is None:
             return JsonResponse({'error': 'Post does not exist.'})
         elif board.password != password:
