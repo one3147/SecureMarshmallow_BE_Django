@@ -122,8 +122,8 @@ def deletePost(request): #글 삭제
         return JsonResponse({'error': 'Invalid request method'})
 
 def search_posts(request): #글 검색
-    if request.method == 'GET':
-        search_word = request.GET.get('search_word')
+    if request.method == 'POST':
+        search_word = request.POST.get('search_word')
         posts = Board.search_posts(search_word)
         return JsonResponse({'result': f'{posts}'})
     else:
