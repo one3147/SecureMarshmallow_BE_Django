@@ -18,7 +18,6 @@ from django.urls import path,include
 from Marshmallow import views
 
 urlpatterns = [
-    path('',views.default),
+    path('',include('Marshmallow.urls')),
     path('admin/', admin.site.urls),
-    path('Marshmallow/', include('Marshmallow.urls')),
 ]

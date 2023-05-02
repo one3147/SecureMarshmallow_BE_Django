@@ -13,5 +13,5 @@ urlpatterns = [ #매핑 패턴
     path('profile', views.profile),
     path('createpassword',views.CreatePassword),
     path('page',views.get_posts),
-
+    path('getAccessToken',views.getAccessToken)
 ]

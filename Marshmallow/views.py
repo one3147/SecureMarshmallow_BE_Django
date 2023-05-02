@@ -2,18 +2,15 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth import *
 from django.http import JsonResponse
-from rest_framework import status
-from rest_framework.response import Response
-
 from Marshmallow.models import Marshmallow_User,Board
 import secrets
 import string
 from django.core.paginator import Paginator
 from .models import Marshmallow_User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.http import JsonResponse, HttpResponse
+from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
-
 
 
 def default(request): #Defualt
@@ -34,16 +31,18 @@ def user_login(request):
             return JsonResponse({'success': 'fail to get user info'})
 
         if password == user.password:
-            login(request, user)
-            token = TokenObtainPairSerializer.get_token(user)
+            token = RefreshToken.for_user(user)
             refresh_token = str(token)
             access_token = str(token.access_token)
-            return JsonResponse({
-                    "user": user.id,
-                    "message": "login success",
-                    "access_token": access_token,
-                    "refresh_token": refresh_token,
-                })
+            response = JsonResponse({
+                "user": user.id,
+                "message": "login success",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+            })
+            response.set_cookie('access_token', access_token)
+            response.set_cookie('refresh_token', refresh_token)
+            return response
         else:
             return JsonResponse({'success': 'fail to login'})
     else:
@@ -51,8 +50,10 @@ def user_login(request):
 
 def user_logout(request): #로그아웃
     if request.user.is_authenticated: #세션 파기
-        logout(request)
-        return JsonResponse({'success': True})
+        response = JsonResponse({"success": True})
+        response.delete_cookie('access_token')
+        response.delete_cookie('refresh_token')
+        return response
     else:
         return JsonResponse({'success': False})
 
@@ -169,3 +170,14 @@ def profile(request): #유저 프로필
     else:
         return JsonResponse({'error' : 'Invalid request method'})
 
+
+def getAccessToken(request):
+    try:
+        refresh_token = request.COOKIES.get('refresh_token')
+        token = RefreshToken(refresh_token)
+        access_token = str(token.access_token)
+    except Exception as e:
+        return JsonResponse({'error':'error'})
+    response = JsonResponse({'access_token': access_token})
+    response.set_cookie('access_token', access_token, httponly=True)
+    return response
