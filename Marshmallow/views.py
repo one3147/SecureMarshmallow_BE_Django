@@ -31,6 +31,7 @@ def user_login(request):
             return JsonResponse({'success': 'fail to get user info'})
 
         if password == user.password:
+            login(request,user)
             token = RefreshToken.for_user(user)
             refresh_token = str(token)
             access_token = str(token.access_token)
@@ -50,6 +51,8 @@ def user_login(request):
 
 def user_logout(request): #로그아웃
     if request.user.is_authenticated: #세션 파기
+        if request.COOKIES.get('sessionid'):
+            logout(request)
         response = JsonResponse({"success": True})
         response.delete_cookie('access_token')
         response.delete_cookie('refresh_token')
@@ -172,12 +175,12 @@ def profile(request): #유저 프로필
 
 
 def getAccessToken(request):
-    try:
-        refresh_token = request.COOKIES.get('refresh_token')
+    refresh_token = request.COOKIES.get('refresh_token')
+    if refresh_token:
         token = RefreshToken(refresh_token)
         access_token = str(token.access_token)
-    except Exception as e:
+        response = JsonResponse({'access_token': access_token})
+        response.set_cookie('access_token', access_token, httponly=True)
+        return response
+    else:
         return JsonResponse({'error':'error'})
-    response = JsonResponse({'access_token': access_token})
-    response.set_cookie('access_token', access_token, httponly=True)
-    return response
