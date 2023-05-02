@@ -2,16 +2,18 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth import *
 from django.http import JsonResponse
+from rest_framework import status
+from rest_framework.response import Response
+
 from Marshmallow.models import Marshmallow_User,Board
-from rest_framework_simplejwt.tokens import RefreshToken
 import secrets
 import string
-from rest_framework_simplejwt.views import TokenRefreshView
 from django.core.paginator import Paginator
-from Marshmallow.models import Marshmallow_User
-from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import check_password
 from .models import Marshmallow_User
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 
 def default(request): #Defualt
@@ -33,8 +35,15 @@ def user_login(request):
 
         if password == user.password:
             login(request, user)
-            response = JsonResponse({'success': f'{request.user}'})
-            return response
+            token = TokenObtainPairSerializer.get_token(user)
+            refresh_token = str(token)
+            access_token = str(token.access_token)
+            return JsonResponse({
+                    "user": user.id,
+                    "message": "login success",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                })
         else:
             return JsonResponse({'success': 'fail to login'})
     else:
@@ -160,7 +169,3 @@ def profile(request): #유저 프로필
     else:
         return JsonResponse({'error' : 'Invalid request method'})
 
-
-
-class RefreshTokenView(TokenRefreshView): #토큰 클래스
-    pass
