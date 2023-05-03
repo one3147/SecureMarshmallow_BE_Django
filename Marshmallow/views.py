@@ -100,7 +100,7 @@ def viewPost(request): #글 조회
         idx = request.POST.get('idx')
         try:
             post = Board.objects.get(idx=idx)
-            return JsonResponse({'success': 'True', 'post': f'{post}'})
+            return JsonResponse({'success': 'True', 'post': f'{post}', 'title' : f'{post.title}', 'contents' : f'{post.contents}','password': f'{post.password}', 'images' : f'{post.image}'})
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
     else:
