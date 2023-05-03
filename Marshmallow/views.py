@@ -7,7 +7,6 @@ import secrets
 import string
 from django.core.paginator import Paginator
 from .models import Marshmallow_User
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -80,13 +79,13 @@ def writePost(request): #글 작성
         contents = request.POST.get('contents')
         password = request.POST.get('password')
         try:
-            image = request.POST.FILES['image']
+            image = request.FILES.get('image',None)
             if password:
                 board = Board(idx=idx, title=title, contents=contents, password=password,image=image)
             else:
                 board = Board(idx=idx, title=title, contents=contents,image=image)
         except:
-            imagee = None
+            image = None
             if password:
                 board = Board(idx=idx, title=title, contents=contents, password=password)
             else:
