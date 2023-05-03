@@ -10,7 +10,7 @@ from .models import Marshmallow_User
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
-
+import os
 
 def default(request): #Defualt
     return HttpResponse("api")
@@ -137,6 +137,8 @@ def deletePost(request): #글 삭제
         elif board.password != password:
             return JsonResponse({'error': 'Wrong password.'})
         else:
+            if board.image:
+                os.system(f"rm -rf ./media/{board.image}")
             board.delete_board()
             return JsonResponse({'success': True})
     else:
