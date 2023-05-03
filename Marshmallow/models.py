@@ -31,6 +31,7 @@ class Board(models.Model): #게시글 모델
     title = models.CharField(max_length=255,null=False)
     contents = models.CharField(max_length=3000,null=False)
     password = models.CharField(max_length=255)
+    image = models.ImageField(upload_to="images/", null=True, blank=True)
     @classmethod
     def create_board(cls, **kwargs):
         return cls.objects.create(**kwargs)
@@ -47,5 +48,7 @@ class Board(models.Model): #게시글 모델
     @classmethod
     def search_posts(cls, keyword):
         return cls.objects.filter(title__icontains=keyword)
+    def __str__(self):
+        return str(self.title)
 
 #모델 구현

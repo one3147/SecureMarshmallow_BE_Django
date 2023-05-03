@@ -74,14 +74,23 @@ def signup(request): #회원가입
 
 def writePost(request): #글 작성
     if request.method == 'POST':
+
         idx = request.POST.get('idx')
         title = request.POST.get('title')
         contents = request.POST.get('contents')
         password = request.POST.get('password')
-        if password:
-            board = Board(idx=idx,title=title,contents=contents,password=password)
-        else:
-            board = Board(idx=idx,title=title,contents=contents)
+        try:
+            image = request.POST.FILES['image']
+            if password:
+                board = Board(idx=idx, title=title, contents=contents, password=password,image=image)
+            else:
+                board = Board(idx=idx, title=title, contents=contents,image=image)
+        except:
+            imagee = None
+            if password:
+                board = Board(idx=idx, title=title, contents=contents, password=password)
+            else:
+                board = Board(idx=idx, title=title, contents=contents)
         board.save()
         return JsonResponse({'success': True})
     else:
