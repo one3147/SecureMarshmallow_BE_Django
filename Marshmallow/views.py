@@ -13,15 +13,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import os
 
 def default(request): #Defualt
-    return HttpResponse("api")
+    return HttpResponse("Root Page")
 
 
 def index(request): #기본 페이지
-    return HttpResponse("200 OK")
+    return HttpResponse("Main")
 
 
 def user_login(request):
-    if request.method == 'POST':
+    if request.method == 'GET':
         id = request.POST.get('id')
         password = request.POST.get('password')
         try:
@@ -72,42 +72,34 @@ def signup(request): #회원가입
         return JsonResponse({'error': 'Invalid request method'})
 
 def writePost(request): #글 작성
-    if request.method == 'POST':
+    if request.method == 'GET':
 
         idx = request.POST.get('idx')
         title = request.POST.get('title')
         contents = request.POST.get('contents')
         password = request.POST.get('password')
-        try:
-            image = request.FILES.get('image',None)
-            if password:
-                board = Board(idx=idx, title=title, contents=contents, password=password,image=image)
-            else:
-                board = Board(idx=idx, title=title, contents=contents,image=image)
-        except:
-            image = None
-            if password:
-                board = Board(idx=idx, title=title, contents=contents, password=password)
-            else:
-                board = Board(idx=idx, title=title, contents=contents)
+        if password:
+            board = Board(idx=idx, title=title, contents=contents, password=password)
+        else:
+            board = Board(idx=idx, title=title, contents=contents)
         board.save()
         return JsonResponse({'success': True})
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
 def viewPost(request): #글 조회
-    if request.method == 'POST':
+    if request.method == 'GET':
         idx = request.POST.get('idx')
         try:
             post = Board.objects.get(idx=idx)
-            return JsonResponse({'success': 'True', 'post': f'{post}', 'title' : f'{post.title}', 'contents' : f'{post.contents}','password': f'{post.password}', 'images' : f'{post.image}'})
+            return JsonResponse({'success': 'True', 'post': f'{post}', 'title' : f'{post.title}', 'contents' : f'{post.contents}','password': f'{post.password}'})
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
 def editPost(request): #글 수정
-    if request.method == 'POST':
+    if request.method == 'PUT' or request.method == 'PATCH':
         idx = request.POST.get('idx')
         title = request.POST.get('title')
         contents = request.POST.get('contents')
@@ -145,7 +137,7 @@ def deletePost(request): #글 삭제
         return JsonResponse({'error': 'Invalid request method'})
 
 def search_posts(request): #글 검색
-    if request.method == 'POST':
+    if request.method == 'GET':
         search_word = request.POST.get('search_word')
         posts = Board.search_posts(search_word)
         return JsonResponse({'result': f'{posts}'})
@@ -161,9 +153,10 @@ def CreatePassword(request): #비밀번호 생성
         return JsonResponse({'error': 'Invalid request method'})
 
 def get_posts(request): #페이징
-    if request.method == 'POST':
+    if request.method == 'GET':
+        number = request.POST.get('number')
         paginator = Paginator(Board.objects.all(), 10)
-        page_number = request.POST.get('page', 1)
+        page_number = request.POST.get('page', number)
         page_obj = paginator.get_page(page_number)
         posts = page_obj.object_list
         response_data = {
@@ -176,7 +169,7 @@ def get_posts(request): #페이징
         return JsonResponse({'error': 'Invalid request method'})
 
 def profile(request): #유저 프로필
-    if request.method == 'POST':
+    if request.method == 'GET':
         id = request.POST.get('id')
         user = get_object_or_404(Marshmallow_User, id=id)
         return JsonResponse({'user': f'{user}'})
@@ -194,3 +187,10 @@ def getAccessToken(request):
         return response
     else:
         return JsonResponse({'error':'error'})
+
+def image_upload(request):
+    image = request.FILES.get('image', None)
+    if image:
+        print(1)
+    else:
+        return JsonResponse({'error': 'No Image..'})
