@@ -22,13 +22,12 @@ def index(request): #기본 페이지
 
 def user_login(request):
     if request.method == 'GET':
-        id = request.POST.get('id')
-        password = request.POST.get('password')
+        id = request.GET.get('id')
+        password = request.GET.get('password')
         try:
             user = Marshmallow_User.objects.get(id=id)
-        except Marshmallow_User.DoesNotExist:
-            return JsonResponse({'success': 'fail to get user info'})
-
+        except Marshmallow_User.DoesNotExist as e:
+            return JsonResponse({'error': f'{str(e)}'})
         if password == user.password:
             login(request,user)
             token = RefreshToken.for_user(user)
@@ -71,10 +70,8 @@ def signup(request): #회원가입
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def writePost(request): #글 작성
-    if request.method == 'GET':
-
-        idx = request.POST.get('idx')
+def writePost(request, idx): #글 작성
+    if request.method == 'POST':
         title = request.POST.get('title')
         contents = request.POST.get('contents')
         password = request.POST.get('password')
@@ -100,10 +97,18 @@ def viewPost(request): #글 조회
 
 def editPost(request): #글 수정
     if request.method == 'PUT' or request.method == 'PATCH':
-        idx = request.POST.get('idx')
-        title = request.POST.get('title')
-        contents = request.POST.get('contents')
-        password = request.POST.get('password')
+        idx = request.PUT.get('idx')
+        if not idx:
+            idx = request.PATCH.get('idx')
+        title = request.PUT.get('title')
+        if not title:
+            title = request.PATCH.get('title')
+        contents = request.PUT.get('contents')
+        if not contents:
+            contents = request.PATCH.get('contents')
+        password = request.PUT.get('password')
+        if not password:
+            password = request.PATCH.get('password')
         board = Board.objects.get(idx=idx)
         if password:
             board.idx = idx
@@ -117,10 +122,10 @@ def editPost(request): #글 수정
         board.save()
         return JsonResponse({'success': True})
     else:
-        return JsonResponse({'error': "error"})
+        return JsonResponse({'error': "Invalid Request Method"})
 
 def deletePost(request): #글 삭제
-    if request.method == 'POST':
+    if request.method == 'DELETE':
         idx = request.POST.get('idx')
         password = request.POST.get('password')
         board = Board.objects.get(idx=idx)

@@ -16,6 +16,6 @@ urlpatterns = [ #매핑 패턴
     path('article/search', views.search_posts),
     path('api/profile', views.profile),
     path('createpassword',views.CreatePassword),
-    path('articles',views.get_posts),
+    path('api/articles',views.get_posts),
     path('getAccessToken',views.getAccessToken)
 ] + static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
