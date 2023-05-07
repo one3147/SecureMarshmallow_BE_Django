@@ -198,7 +198,7 @@ def image_upload(request):
 
 def delete_uploaded_image(request):
     if request.method == 'POST':
-        filename = request.POSt.get('filename')
+        filename = request.POST.get('filename')
         file_path = f'./media/images/{filename}'
         if file_path:
             deleted = delete_image(file_path)
