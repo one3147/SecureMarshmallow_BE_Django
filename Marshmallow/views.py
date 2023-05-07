@@ -179,8 +179,43 @@ def getAccessToken(request):
         return JsonResponse({'error':'error'})
 
 def image_upload(request):
-    image = request.FILES.get('image', None)
-    if image:
-        print(1)
+    if request.method == 'POST':
+        image = request.FILES.get('image', None)
+        if image:
+            try:
+                save_path = './media/images/'
+                file_name = image.name
+                file_path = os.path.join(save_path, file_name)
+                with open(file_path, 'wb+') as destination:
+                    for chunk in image.chunks():
+                        destination.write(chunk)
+
+                return JsonResponse({'success': True, 'file_path': file_path})
+            except Exception as e:
+                return JsonResponse({'error': str(e)})
     else:
         return JsonResponse({'error': 'No Image..'})
+
+def delete_uploaded_image(request):
+    if request.method == 'POST':
+        file_path = request.POST.get('file_path')
+        if file_path:
+            deleted = delete_image(file_path)
+            if deleted:
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'error': 'File not found'})
+        else:
+            return JsonResponse({'error': 'Invalid file path'})
+    else:
+        return JsonResponse({'error': 'Invalid request method'})
+
+def delete_image(file_path):
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        else:
+            return False
+    except Exception as e:
+        return str(e)
