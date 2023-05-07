@@ -12,11 +12,11 @@ from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
 import os
 
-def default(request): #Defualt
+def default(request):
     return HttpResponse("Root Page")
 
 
-def index(request): #기본 페이지
+def index(request):
     return HttpResponse("Main")
 
 
@@ -47,8 +47,8 @@ def user_login(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def user_logout(request): #로그아웃
-    if request.user.is_authenticated: #세션 파기
+def user_logout(request):
+    if request.user.is_authenticated:
         if request.COOKIES.get('sessionid'):
             logout(request)
         response = JsonResponse({"success": True})
@@ -58,7 +58,7 @@ def user_logout(request): #로그아웃
     else:
         return JsonResponse({'success': False})
 
-def signup(request): #회원가입
+def signup(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -70,8 +70,9 @@ def signup(request): #회원가입
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def writePost(request, idx): #글 작성
+def writeOrViewPost(request):
     if request.method == 'POST':
+        idx = request.POST.get('idx')
         title = request.POST.get('title')
         contents = request.POST.get('contents')
         password = request.POST.get('password')
@@ -81,17 +82,29 @@ def writePost(request, idx): #글 작성
             board = Board(idx=idx, title=title, contents=contents)
         board.save()
         return JsonResponse({'success': True})
+    elif request.method == 'GET':
+        paginator = Paginator(Board.objects.all(), 10)
+        page_number = 1
+        page_number = request.GET.get('number')
+        page_obj = paginator.get_page(page_number)
+        posts = page_obj.object_list
+        response_data = {
+            'count': len(posts),
+            'num_pages': page_number,
+            'posts': [{'idx' : post.idx, 'title': post.title, 'contents': post.contents} for post in posts],
+        }
+        return JsonResponse(response_data)
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def Post(request,idx): #글 조회
+def Post(request,idx):
     if request.method == 'GET':
         try:
             post = Board.objects.get(idx=idx)
             return JsonResponse({'success': 'True', 'post': f'{post}', 'title' : f'{post.title}', 'contents' : f'{post.contents}','password': f'{post.password}'})
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
-    elif request.method == 'PUT' or 'PATCH':
+    elif request.method == 'PUT' or request.method == 'PATCH':
             title = request.PUT.get('title')
             if not title:
                 title = request.PATCH.get('title')
@@ -129,7 +142,7 @@ def Post(request,idx): #글 조회
         return JsonResponse({'error': 'Invalid request method'})
 
 
-def search_posts(request): #글 검색
+def search_posts(request):
     if request.method == 'GET':
         search_word = request.POST.get('search_word')
         posts = Board.search_posts(search_word)
@@ -137,7 +150,7 @@ def search_posts(request): #글 검색
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def CreatePassword(request): #비밀번호 생성
+def CreatePassword(request):
     if request.method == 'POST':
         alphabet = string.ascii_letters + string.digits + string.punctuation
         password = ''.join(secrets.choice(alphabet) for i in range(8))
@@ -145,23 +158,7 @@ def CreatePassword(request): #비밀번호 생성
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def get_posts(request): #페이징
-    if request.method == 'GET':
-        number = request.POST.get('number')
-        paginator = Paginator(Board.objects.all(), 10)
-        page_number = request.POST.get('page', number)
-        page_obj = paginator.get_page(page_number)
-        posts = page_obj.object_list
-        response_data = {
-            'count': paginator.count,
-            'num_pages': paginator.num_pages,
-            'posts': [{'title': post.title, 'contents': post.contents} for post in posts],
-        }
-        return JsonResponse(response_data)
-    else:
-        return JsonResponse({'error': 'Invalid request method'})
-
-def profile(request): #유저 프로필
+def profile(request):
     if request.method == 'GET':
         id = request.POST.get('id')
         user = get_object_or_404(Marshmallow_User, id=id)

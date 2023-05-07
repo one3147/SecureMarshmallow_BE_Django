@@ -9,11 +9,10 @@ urlpatterns = [ #매핑 패턴
     path('api/login', views.user_login),
     path('api/logout', views.user_logout),
     path('api/sign-up', views.signup),
-    path('api/articles', views.writePost),
+    path('api/articles', views.writeOrViewPost),
     path('api/articles/<int:idx>', views.Post),
-    path('article/search', views.search_posts),
+    path('api/articles/search', views.search_posts),
     path('api/profile', views.profile),
     path('createpassword',views.CreatePassword),
-    path('api/articles',views.get_posts),
-    path('getAccessToken',views.getAccessToken)
+    path('api/getAccessToken',views.getAccessToken)
 ] + static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
