@@ -11,8 +11,6 @@ urlpatterns = [ #매핑 패턴
     path('api/sign-up', views.signup),
     path('api/articles', views.writePost),
     path('api/articles/<int:idx>', views.Post),
-    path('api/articles/<int:idx>', views.Post),
-    path('api/articles/<int:idx>', views.Post),
     path('article/search', views.search_posts),
     path('api/profile', views.profile),
     path('createpassword',views.CreatePassword),
