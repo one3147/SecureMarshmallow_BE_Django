@@ -84,49 +84,36 @@ def writePost(request, idx): #글 작성
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def viewPost(request): #글 조회
+def Post(request,idx): #글 조회
     if request.method == 'GET':
-        idx = request.POST.get('idx')
         try:
             post = Board.objects.get(idx=idx)
             return JsonResponse({'success': 'True', 'post': f'{post}', 'title' : f'{post.title}', 'contents' : f'{post.contents}','password': f'{post.password}'})
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
-    else:
-        return JsonResponse({'error': 'Invalid request method'})
-
-def editPost(request): #글 수정
-    if request.method == 'PUT' or request.method == 'PATCH':
-        idx = request.PUT.get('idx')
-        if not idx:
-            idx = request.PATCH.get('idx')
-        title = request.PUT.get('title')
-        if not title:
-            title = request.PATCH.get('title')
-        contents = request.PUT.get('contents')
-        if not contents:
-            contents = request.PATCH.get('contents')
-        password = request.PUT.get('password')
-        if not password:
-            password = request.PATCH.get('password')
-        board = Board.objects.get(idx=idx)
-        if password:
-            board.idx = idx
-            board.title = title
-            board.contents = contents
-            board.password = password
-        else:
-            board.idx = idx
-            board.title = title
-            board.contents = contents
-        board.save()
-        return JsonResponse({'success': True})
-    else:
-        return JsonResponse({'error': "Invalid Request Method"})
-
-def deletePost(request): #글 삭제
-    if request.method == 'DELETE':
-        idx = request.POST.get('idx')
+    elif request.method == 'PUT' or 'PATCH':
+            title = request.PUT.get('title')
+            if not title:
+                title = request.PATCH.get('title')
+            contents = request.PUT.get('contents')
+            if not contents:
+                contents = request.PATCH.get('contents')
+            password = request.PUT.get('password')
+            if not password:
+                password = request.PATCH.get('password')
+            board = Board.objects.get(idx=idx)
+            if password:
+                board.idx = idx
+                board.title = title
+                board.contents = contents
+                board.password = password
+            else:
+                board.idx = idx
+                board.title = title
+                board.contents = contents
+            board.save()
+            return JsonResponse({'success': True})
+    elif request.method == 'DELETE':
         password = request.POST.get('password')
         board = Board.objects.get(idx=idx)
         if board is None:
@@ -140,6 +127,7 @@ def deletePost(request): #글 삭제
             return JsonResponse({'success': True})
     else:
         return JsonResponse({'error': 'Invalid request method'})
+
 
 def search_posts(request): #글 검색
     if request.method == 'GET':
