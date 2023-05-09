@@ -134,9 +134,9 @@ def Post(request,idx):
             board.contents = contents
         board.save()
         return JsonResponse({'success': True})
-    elif request.method == 'DELETE':
-        username = request.DELETE.get('username')
-        password = request.DELETE.get('password')
+    elif request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
         board = Board.objects.get(idx=idx,username=username)
         if board is None:
             return JsonResponse({'error': 'Post does not exist.'})
