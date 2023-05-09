@@ -73,21 +73,25 @@ def signup(request):
 def writeOrViewPost(request):
     if request.method == 'POST':
         idx = request.POST.get('idx')
+        username = request.POST.get('username')
         title = request.POST.get('title')
         contents = request.POST.get('contents')
         password = request.POST.get('password')
         if password:
-            board = Board(idx=idx, title=title, contents=contents, password=password)
+            board = Board(idx=idx, title=title, contents=contents, password=password,username=username)
         else:
-            board = Board(idx=idx, title=title, contents=contents)
+            board = Board(idx=idx, title=title, contents=contents,username=username)
         board.save()
         return JsonResponse({'success': True})
     elif request.method == 'GET':
-        paginator = Paginator(Board.objects.all(), 10)
+        username = request.GET.get('username')
+        paginator = Paginator(Board.objects.filter(username=username), 10)
         page_number = 1
         page_number = request.GET.get('number')
         page_obj = paginator.get_page(page_number)
         posts = page_obj.object_list
+        if not posts:
+            return JsonResponse({'error' : 'error'})
         response_data = {
             'count': len(posts),
             'num_pages': page_number,
@@ -99,43 +103,46 @@ def writeOrViewPost(request):
 
 def Post(request,idx):
     if request.method == 'GET':
+        username = request.GET.get('username')
         try:
-            post = Board.objects.get(idx=idx)
-            return JsonResponse({'success': 'True', 'post': f'{post}', 'title' : f'{post.title}', 'contents' : f'{post.contents}','password': f'{post.password}'})
+            post = Board.objects.get(idx=idx,username=username)
+            return JsonResponse({'success': 'True', 'idx': f'{idx}','post': f'{post}', 'title' : f'{post.title}', 'contents' : f'{post.contents}','password': f'{post.password}'})
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
     elif request.method == 'PUT' or request.method == 'PATCH':
-            title = request.PUT.get('title')
-            if not title:
-                title = request.PATCH.get('title')
-            contents = request.PUT.get('contents')
-            if not contents:
-                contents = request.PATCH.get('contents')
-            password = request.PUT.get('password')
-            if not password:
-                password = request.PATCH.get('password')
-            board = Board.objects.get(idx=idx)
-            if password:
-                board.idx = idx
-                board.title = title
-                board.contents = contents
-                board.password = password
-            else:
-                board.idx = idx
-                board.title = title
-                board.contents = contents
-            board.save()
-            return JsonResponse({'success': True})
+        username = request.PUT.get('username')
+        if not username:
+            request.PATCH.get('username')
+        title = request.PUT.get('title')
+        if not title:
+            title = request.PATCH.get('title')
+        contents = request.PUT.get('contents')
+        if not contents:
+            contents = request.PATCH.get('contents')
+        password = request.PUT.get('password')
+        if not password:
+            password = request.PATCH.get('password')
+        board = Board.objects.get(idx=idx,username=username)
+        if password:
+            board.idx = idx
+            board.title = title
+            board.contents = contents
+            board.password = password
+        else:
+            board.idx = idx
+            board.title = title
+            board.contents = contents
+        board.save()
+        return JsonResponse({'success': True})
     elif request.method == 'DELETE':
-        password = request.POST.get('password')
-        board = Board.objects.get(idx=idx)
+        username = request.DELETE.get('username')
+        password = request.DELETE.get('password')
+        board = Board.objects.get(idx=idx,username=username)
         if board is None:
             return JsonResponse({'error': 'Post does not exist.'})
         elif board.password != password:
             return JsonResponse({'error': 'Wrong password.'})
         else:
-            if board.image:
-                os.system(f"rm -rf ./media/{board.image}")
             board.delete_board()
             return JsonResponse({'success': True})
     else:
@@ -144,8 +151,9 @@ def Post(request,idx):
 
 def search_posts(request):
     if request.method == 'GET':
-        search_word = request.POST.get('search_word')
-        posts = Board.search_posts(search_word)
+        username = request.GET.get('username')
+        search_word = request.GET.get('search_word')
+        posts = Board.search_posts(search_word,username)
         return JsonResponse({'result': f'{posts}'})
     else:
         return JsonResponse({'error': 'Invalid request method'})

@@ -28,6 +28,7 @@ class Marshmallow_User(models.Model): #유저 모델
 
 class Board(models.Model): #게시글 모델
     idx = models.IntegerField(null=False,primary_key=True)
+    username = models.CharField(max_length=255, null=True)
     title = models.CharField(max_length=255,null=False)
     contents = models.CharField(max_length=3000,null=False)
     password = models.CharField(max_length=255)
@@ -37,17 +38,17 @@ class Board(models.Model): #게시글 모델
         return cls.objects.create(**kwargs)
 
     @classmethod
-    def get_board(cls, idx):
+    def get_board(cls, idx,username):
         try:
-            return cls.objects.get(idx=idx)
+            return cls.objects.get(idx=idx,username=username)
         except cls.DoesNotExist:
             return None
     def delete_board(self):
         self.delete()
 
     @classmethod
-    def search_posts(cls, keyword):
-        return cls.objects.filter(title__icontains=keyword)
+    def search_posts(cls, keyword,username):
+        return cls.objects.filter(title__icontains=keyword,username=username)
     def __str__(self):
         return str(self.title)
 
