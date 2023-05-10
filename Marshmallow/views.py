@@ -2,6 +2,8 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth import *
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+
 from Marshmallow.models import Marshmallow_User, Board
 import secrets
 import string
@@ -90,8 +92,9 @@ def writeOrViewPost(request):
     elif request.method == 'GET': # 게시글 페이징 , 게시글 다수 조회
         id = request.GET.get('id')
         paginator = Paginator(Board.objects.filter(id=id), 10)
-        page_number = 1
         page_number = request.GET.get('number')
+        if not page_number:
+            page_number = 1
         page_obj = paginator.get_page(page_number)
         posts = page_obj.object_list
         if not posts:
@@ -115,33 +118,28 @@ def Post(request, idx):
                                  'contents': f'{post.contents}', 'password': f'{post.password}'})
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
-    elif request.method == 'PUT' or request.method == 'PATCH':  # 게시글 수정
-        id = request.PUT.get('id')
+    elif request.method in ['POST'] and not request.POST.get('delete'):  # 게시글 수정
+        id = request.POST.get('id')
         if not id:
-            request.PATCH.get('id')
-        title = request.PUT.get('title')
-        if not title:
-            title = request.PATCH.get('title')
-        contents = request.PUT.get('contents')
-        if not contents:
-            contents = request.PATCH.get('contents')
-        password = request.PUT.get('password')
-        if not password:
-            password = request.PATCH.get('password')
-        board = Board.objects.get(idx=idx, id=id)
+            return JsonResponse({'error': 'with id'})
+        try:
+            board = Board.objects.get(idx=idx, id=id)
+        except Board.DoesNotExist:
+            return JsonResponse({'error': 'Post does not exist.'})
+        title = request.POST.get('title') or board.title
+        contents = request.POST.get('contents') or board.contents
+        password = request.POST.get('password') or board.password
         if password:
-            board.idx = idx
             board.title = title
             board.contents = contents
             board.password = password
         else:
-            board.idx = idx
             board.title = title
             board.contents = contents
         board.save()
         return JsonResponse({'success': True})
-    elif request.method == 'POST':  # 게시글 삭제
-        username = request.POST.get('id')
+    elif request.method == 'POST' and request.POST.get('delete'):  # 게시글 삭제
+        id = request.POST.get('id')
         password = request.POST.get('password')
         board = Board.objects.get(idx=idx, id=id)
         if board is None:
@@ -150,7 +148,7 @@ def Post(request, idx):
             return JsonResponse({'error': 'Wrong password.'})
         else:
             board.delete_board()
-            return JsonResponse({'success': True})
+            return JsonResponse({'Delete': True})
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
