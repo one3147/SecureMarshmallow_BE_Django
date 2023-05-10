@@ -37,9 +37,9 @@ class Board(models.Model): #게시글 모델
         return cls.objects.create(**kwargs)
 
     @classmethod
-    def get_board(cls, idx,username):
+    def get_board(cls, idx,id):
         try:
-            return cls.objects.get(idx=idx,username=username)
+            return cls.objects.get(idx=idx,id=id)
         except cls.DoesNotExist:
             return None
     def delete_board(self):

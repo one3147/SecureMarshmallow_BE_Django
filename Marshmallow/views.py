@@ -88,8 +88,8 @@ def writeOrViewPost(request):
         board.save()
         return JsonResponse({'success': True})
     elif request.method == 'GET': # 게시글 페이징 , 게시글 다수 조회
-        username = request.GET.get('username')
-        paginator = Paginator(Board.objects.filter(username=username), 10)
+        id = request.GET.get('id')
+        paginator = Paginator(Board.objects.filter(id=id), 10)
         page_number = 1
         page_number = request.GET.get('number')
         page_obj = paginator.get_page(page_number)
@@ -116,9 +116,9 @@ def Post(request, idx):
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
     elif request.method == 'PUT' or request.method == 'PATCH':  # 게시글 수정
-        username = request.PUT.get('username')
-        if not username:
-            request.PATCH.get('username')
+        id = request.PUT.get('id')
+        if not id:
+            request.PATCH.get('id')
         title = request.PUT.get('title')
         if not title:
             title = request.PATCH.get('title')
@@ -222,7 +222,7 @@ def image_upload(request):
 def delete_uploaded_image(request):
     if request.method == 'POST':
         filename = request.POST.get('filename')
-        username = request.POST.get('username')
+        id = request.POST.get('id')
         file_path = f'./media/images/{filename}'
         if file_path:
             deleted = delete_image(file_path)
