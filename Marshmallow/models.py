@@ -46,8 +46,8 @@ class Board(models.Model): #게시글 모델
         self.delete()
 
     @classmethod
-    def search_posts(cls, keyword,username):
-        return cls.objects.filter(title__icontains=keyword,username=username)
+    def search_posts(cls, keyword,id):
+        return cls.objects.filter(title__icontains=keyword,id=id)
     def __str__(self):
         return str(self.title)
 
