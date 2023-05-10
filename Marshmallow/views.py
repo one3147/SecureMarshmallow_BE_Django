@@ -3,8 +3,8 @@ from django.http import HttpResponse
 from django.contrib.auth import *
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-
-from Marshmallow.models import Marshmallow_User, Board
+import base64
+from Marshmallow.models import Marshmallow_User, Board, image
 import secrets
 import string
 from django.core.paginator import Paginator
@@ -166,7 +166,7 @@ def search_posts(request):
 def CreatePassword(request):
     if request.method == 'POST':
         alphabet = string.ascii_letters + string.digits + string.punctuation
-        password = ''.join(secrets.choice(alphabet) for i in range(8))
+        password = ''.join(secrets.choice(alphabet) for i in range(16))
         return JsonResponse({'Password': f"{password}"})
     else:
         return JsonResponse({'error': 'Invalid request method'})
@@ -175,7 +175,10 @@ def CreatePassword(request):
 def profile(request):
     if request.method == 'POST':
         id = request.POST.get('id')
-        user = get_object_or_404(Marshmallow_User, id=id)
+        try:
+            user = Marshmallow_User.objects.get(id=id)
+        except Marshmallow_User.DoesNotExist as e:
+            return JsonResponse({'error': f'{str(e)}'})
         return JsonResponse({'user': f'{user}'})
     else:
         return JsonResponse({'error': 'Invalid request method'})
@@ -193,21 +196,36 @@ def getAccessToken(request):
         return JsonResponse({'error': 'error'})
 
 
+def image_View(request):
+    if request.method == 'POST':
+        id = request.POST.get('id')
+        filename = request.POST.get('filename')
+        file_path = f'./media/images/{filename}'
+        try:
+            imageModel = image.objects.get(image=filename, id=id)
+        except image.DoesNotExist:
+            return JsonResponse({'error': 'Post does not exist'})
+        with open(file_path, 'rb') as image_file:
+            image_data = image_file.read()
+        image_data_base64 = base64.b64encode(image_data).decode('utf-8')
+        return JsonResponse({'image_data': image_data_base64})
+    else:
+        return JsonResponse({'error' : 'Invalid Request Method'})
+
 def image_upload(request):
     if request.method == 'POST':
-        image = request.FILES.get('image', None)
+        Realimage = request.FILES.get('image', None)
         id = request.POST.get('id')
-        if image:
+        if Realimage:
             try:
                 save_path = './media/images/'
-                file_name = image.name
+                file_name = Realimage.name
                 file_path = os.path.join(save_path, file_name)
-                image= image(id=id,image=file_name)
-                image.save()
+                imageModel = image(id=id,image=file_name)
+                imageModel.save()
                 with open(file_path, 'wb+') as destination:
-                    for chunk in image.chunks():
+                    for chunk in Realimage.chunks():
                         destination.write(chunk)
-
                 return JsonResponse({'success': True, 'file_path': file_path})
             except Exception as e:
                 return JsonResponse({'error': str(e)})
@@ -221,10 +239,12 @@ def delete_uploaded_image(request):
     if request.method == 'POST':
         filename = request.POST.get('filename')
         id = request.POST.get('id')
+        imageModel = image.objects.get(id=id)
         file_path = f'./media/images/{filename}'
         if file_path:
             deleted = delete_image(file_path)
             if deleted:
+                imageModel.delete_image()
                 return JsonResponse({'success': True})
             else:
                 return JsonResponse({'error': 'File not found'})

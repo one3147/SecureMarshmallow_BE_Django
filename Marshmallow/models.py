@@ -55,3 +55,5 @@ class Board(models.Model): #게시글 모델
 class image(models.Model): #게시글 모델
     id = models.CharField(max_length=255, null=False,primary_key=True)
     image = models.ImageField(upload_to="images/", null=True, blank=True)
+    def delete_image(self):
+        self.delete()
