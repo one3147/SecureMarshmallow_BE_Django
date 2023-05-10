@@ -60,7 +60,7 @@ def user_logout(request):
         response.delete_cookie('refresh_token')
         return response
     else:
-        return JsonResponse({'success': False})
+        return JsonResponse({'success': 'You are not logged in.'})
 
 
 def signup(request):
@@ -193,7 +193,7 @@ def getAccessToken(request):
         response.set_cookie('access_token', access_token, httponly=True)
         return response
     else:
-        return JsonResponse({'error': 'error'})
+        return JsonResponse({'error': "You don't Have RefreshToken."})
 
 
 def image_View(request):
@@ -263,3 +263,9 @@ def delete_image(file_path):
             return False
     except Exception as e:
         return str(e)
+
+def flag(request):
+    if request.method == 'PUT':
+        return HttpResponse("Marshmallow{E3sT3R_3gg!}")
+    else:
+        return JsonResponse({'Status code': '404'})

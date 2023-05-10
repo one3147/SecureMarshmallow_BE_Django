@@ -18,4 +18,5 @@ urlpatterns = [ #매핑 패턴
     path('api/images/upload', views.image_upload),
     path('api/images/view',views.image_View),
     path('api/images/delete',views.delete_uploaded_image),
+    path('api/flag', views.flag),
 ] + static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
