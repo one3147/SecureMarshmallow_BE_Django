@@ -28,11 +28,10 @@ class Marshmallow_User(models.Model): #유저 모델
 
 class Board(models.Model): #게시글 모델
     idx = models.IntegerField(null=False,primary_key=True)
-    username = models.CharField(max_length=255, null=True)
+    id = models.CharField(max_length=255, null=True)
     title = models.CharField(max_length=255,null=False)
     contents = models.CharField(max_length=3000,null=False)
     password = models.CharField(max_length=255)
-    image = models.ImageField(upload_to="images/", null=True, blank=True)
     @classmethod
     def create_board(cls, **kwargs):
         return cls.objects.create(**kwargs)
@@ -53,3 +52,6 @@ class Board(models.Model): #게시글 모델
         return str(self.title)
 
 #모델 구현
+class image(models.Model): #게시글 모델
+    id = models.CharField(max_length=255, null=False,primary_key=True)
+    image = models.ImageField(upload_to="images/", null=True, blank=True)

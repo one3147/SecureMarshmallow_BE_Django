@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     'Marshmallow',
     'rest_framework_simplejwt',
     'rest_framework',
-
 ]
 
 

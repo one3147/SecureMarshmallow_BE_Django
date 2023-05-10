@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth import *
 from django.http import JsonResponse
-from Marshmallow.models import Marshmallow_User,Board
+from Marshmallow.models import Marshmallow_User, Board
 import secrets
 import string
 from django.core.paginator import Paginator
@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
 import os
+
 
 def default(request):
     return HttpResponse("Root Page")
@@ -29,7 +30,7 @@ def user_login(request):
         except Marshmallow_User.DoesNotExist as e:
             return JsonResponse({'error': f'{str(e)}'})
         if password == user.password:
-            login(request,user)
+            login(request, user)
             token = RefreshToken.for_user(user)
             refresh_token = str(token)
             access_token = str(token.access_token)
@@ -47,6 +48,7 @@ def user_login(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
+
 def user_logout(request):
     if request.user.is_authenticated:
         if request.COOKIES.get('sessionid'):
@@ -57,6 +59,7 @@ def user_logout(request):
         return response
     else:
         return JsonResponse({'success': False})
+
 
 def signup(request):
     if request.method == 'POST':
@@ -70,20 +73,21 @@ def signup(request):
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
+
 def writeOrViewPost(request):
-    if request.method == 'POST':
+    if request.method == 'POST': # 게시글 작성
         idx = request.POST.get('idx')
-        username = request.POST.get('username')
+        id = request.POST.get('id')
         title = request.POST.get('title')
         contents = request.POST.get('contents')
         password = request.POST.get('password')
         if password:
-            board = Board(idx=idx, title=title, contents=contents, password=password,username=username)
+            board = Board(idx=idx, title=title, contents=contents, password=password, id=id)
         else:
-            board = Board(idx=idx, title=title, contents=contents,username=username)
+            board = Board(idx=idx, title=title, contents=contents, id=id)
         board.save()
         return JsonResponse({'success': True})
-    elif request.method == 'GET':
+    elif request.method == 'GET': # 게시글 페이징 , 게시글 다수 조회
         username = request.GET.get('username')
         paginator = Paginator(Board.objects.filter(username=username), 10)
         page_number = 1
@@ -91,25 +95,27 @@ def writeOrViewPost(request):
         page_obj = paginator.get_page(page_number)
         posts = page_obj.object_list
         if not posts:
-            return JsonResponse({'error' : 'error'})
+            return JsonResponse({'error': 'error'})
         response_data = {
             'count': len(posts),
             'num_pages': page_number,
-            'posts': [{'idx' : post.idx, 'title': post.title, 'contents': post.contents} for post in posts],
+            'posts': [{'idx': post.idx, 'title': post.title, 'contents': post.contents} for post in posts],
         }
         return JsonResponse(response_data)
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
-def Post(request,idx):
-    if request.method == 'GET':
-        username = request.GET.get('username')
+
+def Post(request, idx):
+    if request.method == 'GET': # 게시글 단일 조회
+        id = request.GET.get('id')
         try:
-            post = Board.objects.get(idx=idx,username=username)
-            return JsonResponse({'success': 'True', 'idx': f'{idx}','post': f'{post}', 'title' : f'{post.title}', 'contents' : f'{post.contents}','password': f'{post.password}'})
+            post = Board.objects.get(idx=idx, id=id)
+            return JsonResponse({'success': 'True', 'idx': f'{idx}', 'post': f'{post}', 'title': f'{post.title}',
+                                 'contents': f'{post.contents}', 'password': f'{post.password}'})
         except Board.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
-    elif request.method == 'PUT' or request.method == 'PATCH':
+    elif request.method == 'PUT' or request.method == 'PATCH':  # 게시글 수정
         username = request.PUT.get('username')
         if not username:
             request.PATCH.get('username')
@@ -122,7 +128,7 @@ def Post(request,idx):
         password = request.PUT.get('password')
         if not password:
             password = request.PATCH.get('password')
-        board = Board.objects.get(idx=idx,username=username)
+        board = Board.objects.get(idx=idx, id=id)
         if password:
             board.idx = idx
             board.title = title
@@ -134,10 +140,10 @@ def Post(request,idx):
             board.contents = contents
         board.save()
         return JsonResponse({'success': True})
-    elif request.method == 'POST':
-        username = request.POST.get('username')
+    elif request.method == 'POST':  # 게시글 삭제
+        username = request.POST.get('id')
         password = request.POST.get('password')
-        board = Board.objects.get(idx=idx,username=username)
+        board = Board.objects.get(idx=idx, id=id)
         if board is None:
             return JsonResponse({'error': 'Post does not exist.'})
         elif board.password != password:
@@ -151,28 +157,30 @@ def Post(request,idx):
 
 def search_posts(request):
     if request.method == 'GET':
-        username = request.GET.get('username')
+        id = request.GET.get('id')
         search_word = request.GET.get('search_word')
-        posts = Board.search_posts(search_word,username)
+        posts = Board.search_posts(search_word, id)
         return JsonResponse({'result': f'{posts}'})
     else:
         return JsonResponse({'error': 'Invalid request method'})
+
 
 def CreatePassword(request):
     if request.method == 'POST':
         alphabet = string.ascii_letters + string.digits + string.punctuation
         password = ''.join(secrets.choice(alphabet) for i in range(8))
-        return JsonResponse({'Password' : f"{password}"})
+        return JsonResponse({'Password': f"{password}"})
     else:
         return JsonResponse({'error': 'Invalid request method'})
 
+
 def profile(request):
-    if request.method == 'GET':
+    if request.method == 'POST':
         id = request.POST.get('id')
         user = get_object_or_404(Marshmallow_User, id=id)
         return JsonResponse({'user': f'{user}'})
     else:
-        return JsonResponse({'error' : 'Invalid request method'})
+        return JsonResponse({'error': 'Invalid request method'})
 
 
 def getAccessToken(request):
@@ -184,16 +192,20 @@ def getAccessToken(request):
         response.set_cookie('access_token', access_token, httponly=True)
         return response
     else:
-        return JsonResponse({'error':'error'})
+        return JsonResponse({'error': 'error'})
+
 
 def image_upload(request):
     if request.method == 'POST':
         image = request.FILES.get('image', None)
+        id = request.POST.get('id')
         if image:
             try:
                 save_path = './media/images/'
                 file_name = image.name
                 file_path = os.path.join(save_path, file_name)
+                image= image(id=id,image=file_name)
+                image.save()
                 with open(file_path, 'wb+') as destination:
                     for chunk in image.chunks():
                         destination.write(chunk)
@@ -201,12 +213,16 @@ def image_upload(request):
                 return JsonResponse({'success': True, 'file_path': file_path})
             except Exception as e:
                 return JsonResponse({'error': str(e)})
+        else:
+            return JsonResponse({'error': 'No Image..'})
     else:
-        return JsonResponse({'error': 'No Image..'})
+        return JsonResponse({'error' : 'Invalid Request Method'})
+
 
 def delete_uploaded_image(request):
     if request.method == 'POST':
         filename = request.POST.get('filename')
+        username = request.POST.get('username')
         file_path = f'./media/images/{filename}'
         if file_path:
             deleted = delete_image(file_path)
@@ -218,6 +234,7 @@ def delete_uploaded_image(request):
             return JsonResponse({'error': 'Invalid file path'})
     else:
         return JsonResponse({'error': 'Invalid request method'})
+
 
 def delete_image(file_path):
     try:
