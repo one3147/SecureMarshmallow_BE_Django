@@ -13,8 +13,9 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken
 import os
-
-
+from datetime import timedelta
+import re
+import bcrypt
 def default(request):
     return HttpResponse("Root Page")
 
@@ -30,20 +31,25 @@ def user_login(request):
         try:
             user = Marshmallow_User.objects.get(id=id)
         except Marshmallow_User.DoesNotExist as e:
-            return JsonResponse({'error': f'{str(e)}'})
+            return JsonResponse({'error': str(e)})
+
         if password == user.password:
             login(request, user)
-            token = RefreshToken.for_user(user)
-            refresh_token = str(token)
-            access_token = str(token.access_token)
+            refresh_token = RefreshToken.for_user(user)
+            access_token = refresh_token.access_token
+
+            refresh_token.set_exp(lifetime=timedelta(days=1))
+            access_token.set_exp(lifetime=timedelta(hours=1))
+
             response = JsonResponse({
                 "user": user.id,
                 "message": "login success",
-                "access_token": access_token,
-                "refresh_token": refresh_token,
+                "access_token": str(access_token),
+                "refresh_token": str(refresh_token),
             })
-            response.set_cookie('access_token', access_token)
-            response.set_cookie('refresh_token', refresh_token)
+
+            response.set_cookie('access_token', str(access_token))
+            response.set_cookie('refresh_token', str(refresh_token))
             return response
         else:
             return JsonResponse({'success': 'fail to login'})
@@ -67,9 +73,23 @@ def signup(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+        if not re.search(r'\d', password):
+            return JsonResponse({'error' : 'Password must contains Number.'})
+        if not re.search(r'[a-zA-Z]', password):
+            return JsonResponse({'error' : 'Password must contains Alphabet.'})
+        if not re.search(r"[!@#$%^&*()\-=_+[\]{};':\"|,.<>/?]+", password):
+            return JsonResponse({'error' : 'Password must contains special symbol.'})
+        if len(password) < 10:
+            return JsonResponse({'error' : 'Password must be more than 10 digits.'})
+        if len(password) > 50:
+            return JsonResponse({'error' : 'Password must be less than 50 digits.'})
         id = request.POST.get('id')
         email = request.POST.get('email')
-        user = Marshmallow_User(name=username, password=password, email=email, id=id)
+        salt = bcrypt.gensalt()
+        new_password = password.encode('utf-8')
+        hash_password = bcrypt.hashpw(new_password, salt)
+        decode_hash_password = hash_password.decode('utf-8')
+        user = Marshmallow_User(name=username, password=decode_hash_password, email=email, id=id)
         user.save()
         return JsonResponse({'success': True})
     else:
@@ -190,7 +210,7 @@ def getAccessToken(request):
         token = RefreshToken(refresh_token)
         access_token = str(token.access_token)
         response = JsonResponse({'access_token': access_token})
-        response.set_cookie('access_token', access_token, httponly=True)
+        response.set_cookie('access_token', access_token)
         return response
     else:
         return JsonResponse({'error': "You don't Have RefreshToken."})
