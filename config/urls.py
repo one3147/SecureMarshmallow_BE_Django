@@ -19,5 +19,5 @@ from Marshmallow import views
 
 urlpatterns = [
     path('',include('Marshmallow.urls')),
-    path('admin/', admin.site.urls),
+    #path('admin/', admin.site.urls),
 ]
