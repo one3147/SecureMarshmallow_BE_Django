@@ -28,12 +28,15 @@ def user_login(request):
     if request.method == 'GET':
         id = request.GET.get('id')
         password = request.GET.get('password')
+        if len(id) > 50 or len(password) > 150:
+            return JsonResponse({'error': 'id or Password is too Long.'})
         try:
             user = Marshmallow_User.objects.get(id=id)
         except Marshmallow_User.DoesNotExist as e:
             return JsonResponse({'error': str(e)})
-
-        if password == user.password:
+        stored_password = user.password
+        input_password = password.encode('utf-8')
+        if bcrypt.checkpw(input_password, stored_password.encode('utf-8')):
             login(request, user)
             refresh_token = RefreshToken.for_user(user)
             access_token = refresh_token.access_token
