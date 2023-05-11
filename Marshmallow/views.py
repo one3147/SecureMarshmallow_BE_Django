@@ -299,7 +299,7 @@ def image_View(request):
         return JsonResponse({'error' : 'Invalid Request Method'})
 
 
-ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic',]
+ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic']
 def image_upload(request):
     if request.method == 'POST':
         Realimage = request.FILES.get('image', None)
@@ -311,6 +311,10 @@ def image_upload(request):
                 file_extension = os.path.splitext(Realimage.name)[1].lower()
                 if file_extension not in ALLOWED_EXTENSIONS:
                     return JsonResponse({'error': 'Invalid file extension.'})
+                file_size = Realimage.size
+                max_file_size = 8 * 1024 * 1024
+                if file_size > max_file_size:
+                    return JsonResponse({'error': 'File Maximun size is 8mb.'})
                 save_path = './media/images/'
                 file_name = Realimage.name
                 file_path = os.path.join(save_path, file_name)
