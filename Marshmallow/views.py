@@ -34,9 +34,9 @@ def user_login(request):
             user = Marshmallow_User.objects.get(id=id)
         except Marshmallow_User.DoesNotExist as e:
             return JsonResponse({'error': str(e)})
-        stored_password = user.password
+        stored_password = user.password.encode('utf-8')
         input_password = password.encode('utf-8')
-        if bcrypt.checkpw(input_password, stored_password.encode('utf-8')):
+        if bcrypt.checkpw(input_password, stored_password):
             login(request, user)
             refresh_token = RefreshToken.for_user(user)
             access_token = refresh_token.access_token
