@@ -8,7 +8,7 @@ class Marshmallow_User(models.Model): #유저 모델
     id = models.CharField(max_length=50, null=False,primary_key=True)
     password = models.CharField(max_length=150,null=False)
     name = models.CharField(max_length=100,null=False)
-    email = models.EmailField(max_length=150,null=False)
+    email = models.EmailField(max_length=320,null=False)
     USERNAME_FIELD = 'id'
     REQUIRED_FIELDS = []
     @property

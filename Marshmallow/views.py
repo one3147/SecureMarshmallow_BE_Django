@@ -81,10 +81,28 @@ def signup(request):
             return JsonResponse({'error' : 'Password must contains special symbol.'})
         if len(password) < 10:
             return JsonResponse({'error' : 'Password must be more than 10 digits.'})
-        if len(password) > 50:
-            return JsonResponse({'error' : 'Password must be less than 50 digits.'})
+        if len(password) > 150:
+            return JsonResponse({'error' : 'Password must be less than 150 digits.'})
+
         id = request.POST.get('id')
         email = request.POST.get('email')
+        try:
+            Marshmallow_User.objects.get(id=id)
+            return JsonResponse({'error': 'id is already exists.'})
+        except Marshmallow_User.DoesNotExist:
+            pass
+
+        try:
+            Marshmallow_User.objects.get(email=email)
+            return JsonResponse({'error': 'Email is already exists.'})
+        except Marshmallow_User.DoesNotExist:
+            pass
+        if len(id) > 50:
+            return JsonResponse({'error': 'id must be less than 50 digits.'})
+        if len(username) > 100:
+            return JsonResponse({'error': 'Username must be less than 100 digits.'})
+        if len(email) > 320:
+            return JsonResponse({'error': 'Email must be less than 320 digits.'})
         salt = bcrypt.gensalt()
         new_password = password.encode('utf-8')
         hash_password = bcrypt.hashpw(new_password, salt)
