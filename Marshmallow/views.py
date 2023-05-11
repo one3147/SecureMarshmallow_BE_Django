@@ -28,7 +28,7 @@ def user_login(request):
     if request.method == 'GET':
         id = request.GET.get('id')
         password = request.GET.get('password')
-        if len(id) > 50 or len(password) > 150:
+        if len(id) > 50 or len(password) > 255:
             return JsonResponse({'error': 'id or Password is too Long.'})
         try:
             user = Marshmallow_User.objects.get(id=id)
@@ -61,51 +61,53 @@ def user_login(request):
 
 
 def user_logout(request):
-    if request.user.is_authenticated:
-        if request.COOKIES.get('sessionid'):
-            logout(request)
-        response = JsonResponse({"success": True})
-        response.delete_cookie('access_token')
-        response.delete_cookie('refresh_token')
-        return response
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            if request.COOKIES.get('sessionid'):
+                logout(request)
+            response = JsonResponse({"success": True})
+            response.delete_cookie('access_token')
+            response.delete_cookie('refresh_token')
+            return response
+        else:
+            return JsonResponse({'success': 'You are not logged in.'})
     else:
-        return JsonResponse({'success': 'You are not logged in.'})
+        return JsonResponse({'error': 'Invalid request Method.'})
 
 
 def signup(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        if not re.search(r'\d', password):
-            return JsonResponse({'error' : 'Password must contains Number.'})
-        if not re.search(r'[a-zA-Z]', password):
-            return JsonResponse({'error' : 'Password must contains Alphabet.'})
-        if not re.search(r"[!@#$%^&*()\-=_+[\]{};':\"|,.<>/?]+", password):
-            return JsonResponse({'error' : 'Password must contains special symbol.'})
-        if len(password) < 10:
-            return JsonResponse({'error' : 'Password must be more than 10 digits.'})
-        if len(password) > 150:
-            return JsonResponse({'error' : 'Password must be less than 150 digits.'})
-
         id = request.POST.get('id')
         email = request.POST.get('email')
-        try:
-            Marshmallow_User.objects.get(id=id)
-            return JsonResponse({'error': 'id is already exists.'})
-        except Marshmallow_User.DoesNotExist:
-            pass
-
-        try:
-            Marshmallow_User.objects.get(email=email)
-            return JsonResponse({'error': 'Email is already exists.'})
-        except Marshmallow_User.DoesNotExist:
-            pass
+        if len(password) > 255:
+            return JsonResponse({'error' : 'Password must be less than 255 digits.'})
+        if len(password) < 10:
+            return JsonResponse({'error' : 'Password must be more than 10 digits.'})
         if len(id) > 50:
             return JsonResponse({'error': 'id must be less than 50 digits.'})
         if len(username) > 100:
             return JsonResponse({'error': 'Username must be less than 100 digits.'})
         if len(email) > 320:
             return JsonResponse({'error': 'Email must be less than 320 digits.'})
+
+        if not re.search(r'\d', password):
+            return JsonResponse({'error' : 'Password must contains Number.'})
+        if not re.search(r'[a-zA-Z]', password):
+            return JsonResponse({'error' : 'Password must contains Alphabet.'})
+        if not re.search(r"[!@#$%^&*()\-=_+[\]{};':\"|,.<>/?]+", password):
+            return JsonResponse({'error' : 'Password must contains special symbol.'})
+        try:
+            Marshmallow_User.objects.get(id=id)
+            return JsonResponse({'error': 'id is already exists.'})
+        except Marshmallow_User.DoesNotExist:
+            pass
+        try:
+            Marshmallow_User.objects.get(email=email)
+            return JsonResponse({'error': 'Email is already exists.'})
+        except Marshmallow_User.DoesNotExist:
+            pass
         salt = bcrypt.gensalt()
         new_password = password.encode('utf-8')
         hash_password = bcrypt.hashpw(new_password, salt)
@@ -124,14 +126,28 @@ def writeOrViewPost(request):
         title = request.POST.get('title')
         contents = request.POST.get('contents')
         password = request.POST.get('password')
+        if len(id) > 50:
+            return JsonResponse({'error': 'id must be less than 50 digits.'})
+        if len(title) > 255:
+            return JsonResponse({'error': 'title must be less than 255 digits.'})
+        if len(contents) > 3000:
+            return JsonResponse({'error': 'contents must be less than 3000 digits.'})
+        if len(password) > 255:
+            return JsonResponse({'error': 'password must be less than 255 digits.'})
         if password:
-            board = Board(idx=idx, title=title, contents=contents, password=password, id=id)
+            salt = bcrypt.gensalt()
+            new_password = password.encode('utf-8')
+            hash_password = bcrypt.hashpw(new_password, salt)
+            decode_hash_password = hash_password.decode('utf-8')
+            board = Board(idx=idx, title=title, contents=contents, password=decode_hash_password, id=id)
         else:
             board = Board(idx=idx, title=title, contents=contents, id=id)
         board.save()
         return JsonResponse({'success': True})
     elif request.method == 'GET': # 게시글 페이징 , 게시글 다수 조회
         id = request.GET.get('id')
+        if len(id) > 50:
+            return JsonResponse({'error': 'id must be less than 50 digits.'})
         paginator = Paginator(Board.objects.filter(id=id), 10)
         page_number = request.GET.get('number')
         if not page_number:
@@ -139,11 +155,11 @@ def writeOrViewPost(request):
         page_obj = paginator.get_page(page_number)
         posts = page_obj.object_list
         if not posts:
-            return JsonResponse({'error': 'error'})
+            return JsonResponse({'error': 'No posts'})
         response_data = {
             'count': len(posts),
             'num_pages': page_number,
-            'posts': [{'idx': post.idx, 'title': post.title, 'contents': post.contents} for post in posts],
+            'posts': [{'idx': post.idx, 'title': post.title, 'id': post.id} for post in posts],
         }
         return JsonResponse(response_data)
     else:
@@ -153,6 +169,8 @@ def writeOrViewPost(request):
 def Post(request, idx):
     if request.method == 'GET': # 게시글 단일 조회
         id = request.GET.get('id')
+        if len(id) > 50:
+            return JsonResponse({'error': 'id must be less than 50 digits.'})
         try:
             post = Board.objects.get(idx=idx, id=id)
             return JsonResponse({'success': 'True', 'idx': f'{idx}', 'post': f'{post}', 'title': f'{post.title}',
@@ -161,6 +179,8 @@ def Post(request, idx):
             return JsonResponse({'error': 'Post does not exist'})
     elif request.method in ['POST'] and not request.POST.get('delete'):  # 게시글 수정
         id = request.POST.get('id')
+        if len(id) > 50:
+            return JsonResponse({'error': 'id must be less than 50 digits.'})
         if not id:
             return JsonResponse({'error': 'with id'})
         try:
@@ -170,6 +190,12 @@ def Post(request, idx):
         title = request.POST.get('title') or board.title
         contents = request.POST.get('contents') or board.contents
         password = request.POST.get('password') or board.password
+        if len(title) > 255:
+            return JsonResponse({'error': 'title must be less than 255 digits.'})
+        if len(contents) > 3000:
+            return JsonResponse({'error': 'contents must be less than 3000 digits.'})
+        if len(password) > 255:
+            return JsonResponse({'error': 'password must be less than 255 digits.'})
         if password:
             board.title = title
             board.contents = contents
@@ -182,6 +208,10 @@ def Post(request, idx):
     elif request.method == 'POST' and request.POST.get('delete'):  # 게시글 삭제
         id = request.POST.get('id')
         password = request.POST.get('password')
+        if len(password) > 255:
+            return JsonResponse({'error' : 'Password must be less than 255 digits.'})
+        if len(id) > 50:
+            return JsonResponse({'error' : 'id must be less than 50 digits.'})
         board = Board.objects.get(idx=idx, id=id)
         if board is None:
             return JsonResponse({'error': 'Post does not exist.'})
@@ -198,6 +228,10 @@ def search_posts(request):
     if request.method == 'GET':
         id = request.GET.get('id')
         search_word = request.GET.get('search_word')
+        if len(id) > 50:
+            return JsonResponse({'error' : 'id must be less than 50 digits.'})
+        if len(search_word) > 300:
+            return JsonResponse({'error' : 'search word must be less than 300 digits.'})
         posts = Board.search_posts(search_word, id)
         return JsonResponse({'result': f'{posts}'})
     else:
@@ -216,34 +250,45 @@ def CreatePassword(request):
 def profile(request):
     if request.method == 'POST':
         id = request.POST.get('id')
+        if len(id) > 50:
+            return JsonResponse({'error' : 'id must be less than 50 digits.'})
         try:
             user = Marshmallow_User.objects.get(id=id)
         except Marshmallow_User.DoesNotExist as e:
             return JsonResponse({'error': f'{str(e)}'})
         return JsonResponse({'user': f'{user}'})
     else:
-        return JsonResponse({'error': 'Invalid request method'})
+        return JsonResponse({'error': 'Invalid request method.'})
 
 
 def getAccessToken(request):
-    refresh_token = request.COOKIES.get('refresh_token')
-    if refresh_token:
-        token = RefreshToken(refresh_token)
-        access_token = str(token.access_token)
-        response = JsonResponse({'access_token': access_token})
-        response.set_cookie('access_token', access_token)
-        return response
+    if request.method == 'POST':
+        refresh_token = request.COOKIES.get('refresh_token')
+        if len(refresh_token) > 100:
+            return JsonResponse({'error': 'Refresh Token\'s length is too long.'})
+        if refresh_token:
+            token = RefreshToken(refresh_token)
+            access_token = str(token.access_token)
+            response = JsonResponse({'access_token': access_token})
+            response.set_cookie('access_token', access_token)
+            return response
+        else:
+            return JsonResponse({'error': "You don't Have RefreshToken."})
     else:
-        return JsonResponse({'error': "You don't Have RefreshToken."})
+        return JsonResponse({'error': 'Invalid request method.'})
 
 
 def image_View(request):
     if request.method == 'POST':
         id = request.POST.get('id')
         filename = request.POST.get('filename')
+        if len(id) > 50:
+            return JsonResponse({'error': 'id must be less than 50 digits.'})
+        if len(filename) > 255:
+            return JsonResponse({'error': 'filename must be less than 255 digits.'})
         file_path = f'./media/images/{filename}'
         try:
-            imageModel = image.objects.get(image=filename, id=id)
+           image.objects.get(image=filename, id=id)
         except image.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
         with open(file_path, 'rb') as image_file:
@@ -253,16 +298,23 @@ def image_View(request):
     else:
         return JsonResponse({'error' : 'Invalid Request Method'})
 
+
+ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic',]
 def image_upload(request):
     if request.method == 'POST':
         Realimage = request.FILES.get('image', None)
         id = request.POST.get('id')
+        if len(id) > 50:
+            return JsonResponse({'error': 'id must be less than 50 digits.'})
         if Realimage:
             try:
+                file_extension = os.path.splitext(Realimage.name)[1].lower()
+                if file_extension not in ALLOWED_EXTENSIONS:
+                    return JsonResponse({'error': 'Invalid file extension.'})
                 save_path = './media/images/'
                 file_name = Realimage.name
                 file_path = os.path.join(save_path, file_name)
-                imageModel = image(id=id,image=file_name)
+                imageModel = image(id=id, image=file_name)
                 imageModel.save()
                 with open(file_path, 'wb+') as destination:
                     for chunk in Realimage.chunks():
@@ -273,7 +325,7 @@ def image_upload(request):
         else:
             return JsonResponse({'error': 'No Image..'})
     else:
-        return JsonResponse({'error' : 'Invalid Request Method'})
+        return JsonResponse({'error': 'Invalid Request Method'})
 
 
 def delete_uploaded_image(request):
