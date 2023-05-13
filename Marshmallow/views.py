@@ -16,13 +16,9 @@ import os
 from datetime import timedelta
 import re
 import bcrypt
-def default(request):
-    return HttpResponse("Root Page")
 
-
-def index(request):
-    return HttpResponse("Main")
-
+from datetime import timedelta
+from django.http import JsonResponse
 
 def user_login(request):
     if request.method == 'GET':
@@ -51,13 +47,14 @@ def user_login(request):
                 "refresh_token": str(refresh_token),
             })
 
-            response.set_cookie('access_token', str(access_token))
-            response.set_cookie('refresh_token', str(refresh_token))
+            response.set_cookie('access_token', str(access_token), httponly=True)
+            response.set_cookie('refresh_token', str(refresh_token), httponly=True)
             return response
         else:
             return JsonResponse({'success': 'fail to login'})
     else:
         return JsonResponse({'error': 'Invalid request method'})
+
 
 
 def user_logout(request):
@@ -282,7 +279,7 @@ def getAccessToken(request):
             token = RefreshToken(refresh_token)
             access_token = str(token.access_token)
             response = JsonResponse({'access_token': access_token})
-            response.set_cookie('access_token', access_token)
+            response.set_cookie('access_token', access_token, httponly=True)
             return response
         else:
             return JsonResponse({'error': "You don't Have RefreshToken."})

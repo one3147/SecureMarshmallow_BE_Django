@@ -4,8 +4,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 app_name = "Marshmallow"
 urlpatterns = [ #매핑 패턴
-    path('', views.default),
-    path('error', views.index),
     path('api/login', views.user_login),
     path('api/logout', views.user_logout),
     path('api/sign-up', views.signup),
