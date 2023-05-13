@@ -1,13 +1,11 @@
 import jwt
-from rest_framework_simplejwt.settings import api_settings
 from Marshmallow.models import Marshmallow_User, Board, image
 import secrets
 import string
 from django.core.paginator import Paginator
-
 from config import settings
 from .models import Marshmallow_User
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from rest_framework_simplejwt.tokens import RefreshToken
 import os
 import re
@@ -302,6 +300,8 @@ def image_View(request):
         return JsonResponse({'error': f'{e}'})
     if request.method == 'POST':
         filename = request.POST.get('filename')
+        if filename in "../":
+            return JsonResponse({'error': 'Invalid filename.'})
         if len(id) > 50:
             return JsonResponse({'error': 'id must be less than 50 digits.'})
         if len(filename) > 255:
@@ -378,7 +378,8 @@ def delete_uploaded_image(request):
         return JsonResponse({'error': f'{e}'})
     if request.method == 'POST':
         filename = request.POST.get('filename')
-        id = request.POST.get('id')
+        if filename in "../":
+            return JsonResponse({'error': 'Invalid filename.'})
         imageModel = image.objects.get(id=id)
         file_path = f'./media/images/{filename}'
         if file_path:
