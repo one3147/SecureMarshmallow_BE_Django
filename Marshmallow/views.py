@@ -33,7 +33,6 @@ def user_login(request):
         stored_password = user.password.encode('utf-8')
         input_password = password.encode('utf-8')
         if bcrypt.checkpw(input_password, stored_password):
-            login(request, user)
             refresh_token = RefreshToken.for_user(user)
             access_token = refresh_token.access_token
 
@@ -46,9 +45,6 @@ def user_login(request):
                 "access_token": str(access_token),
                 "refresh_token": str(refresh_token),
             })
-
-            response.set_cookie('access_token', str(access_token), httponly=True)
-            response.set_cookie('refresh_token', str(refresh_token), httponly=True)
             return response
         else:
             return JsonResponse({'success': 'fail to login'})
@@ -116,7 +112,10 @@ def signup(request):
 
 
 def writeOrViewPost(request):
-    if request.user.is_authenticated:
+    access_token = request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token'})
+    else:
         if request.method == 'POST':  # 게시글 작성
             idx = request.POST.get('idx')
             id = request.POST.get('id')
@@ -161,12 +160,14 @@ def writeOrViewPost(request):
             return JsonResponse(response_data)
         else:
             return JsonResponse({'error': 'Invalid request method'})
-    else:
-        return JsonResponse({'error': 'Please Login.'})
+
 
 
 def Post(request, idx):
-    if request.user.is_authenticated:
+    access_token = request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token'})
+    else:
         if request.method == 'GET':  # 게시글 단일 조회
             id = request.GET.get('id')
             if len(id) > 50:
@@ -222,13 +223,14 @@ def Post(request, idx):
                 return JsonResponse({'Delete': True})
         else:
             return JsonResponse({'error': 'Invalid request method'})
-    else:
-        return JsonResponse({'error': 'Please Login.'})
 
 
 
 def search_posts(request):
-    if request.user.is_authenticated:
+    access_token = request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token'})
+    else:
         if request.method == 'GET':
             id = request.GET.get('id')
             search_word = request.GET.get('search_word')
@@ -240,8 +242,6 @@ def search_posts(request):
             return JsonResponse({'result': f'{posts}'})
         else:
             return JsonResponse({'error': 'Invalid request method'})
-    else:
-        return JsonResponse({'error': 'Please Login.'})
 
 
 def CreatePassword(request):
@@ -254,7 +254,10 @@ def CreatePassword(request):
 
 
 def profile(request):
-    if request.user.is_authenticated:
+    access_token = request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token'})
+    else:
         if request.method == 'POST':
             id = request.POST.get('id')
             if len(id) > 50:
@@ -266,8 +269,6 @@ def profile(request):
             return JsonResponse({'user': f'{user}'})
         else:
             return JsonResponse({'error': 'Invalid request method.'})
-    else:
-        return JsonResponse({'error': 'Please Login.'})
 
 
 def getAccessToken(request):
@@ -279,7 +280,6 @@ def getAccessToken(request):
             token = RefreshToken(refresh_token)
             access_token = str(token.access_token)
             response = JsonResponse({'access_token': access_token})
-            response.set_cookie('access_token', access_token, httponly=True)
             return response
         else:
             return JsonResponse({'error': "You don't Have RefreshToken."})
@@ -292,7 +292,10 @@ def filename_filter(filename):
 
 
 def image_View(request):
-    if request.user.is_authenticated:
+    access_token = request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token'})
+    else:
         if request.method == 'POST':
             id = request.POST.get('id')
             filename = request.POST.get('filename')
@@ -323,7 +326,10 @@ def image_View(request):
 
 ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic']
 def image_upload(request):
-    if request.user.is_authenticated:
+    access_token = request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token'})
+    else:
         if request.method == 'POST':
             Realimage = request.FILES.get('image', None)
             id = request.POST.get('id')
@@ -337,7 +343,7 @@ def image_upload(request):
                     file_size = Realimage.size
                     max_file_size = 8 * 1024 * 1024
                     if file_size > max_file_size:
-                        return JsonResponse({'error': 'File Maximun size is 8mb.'})
+                        return JsonResponse({'error': 'File Maximum size is 8mb.'})
                     save_path = './media/images/'
                     file_name = Realimage.name
                     file_path = os.path.join(save_path, file_name)
@@ -353,12 +359,13 @@ def image_upload(request):
                 return JsonResponse({'error': 'No Image..'})
         else:
             return JsonResponse({'error': 'Invalid Request Method'})
-    else:
-        return JsonResponse({'error': 'please Login.'})
 
 
 def delete_uploaded_image(request):
-    if request.user.is_authenticated:
+    access_token = request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token'})
+    else:
         if request.method == 'POST':
             filename = request.POST.get('filename')
             id = request.POST.get('id')
@@ -375,8 +382,6 @@ def delete_uploaded_image(request):
                 return JsonResponse({'error': 'Invalid file path'})
         else:
             return JsonResponse({'error': 'Invalid request method'})
-    else:
-        return JsonResponse({'error': 'Please Login.'})
 
 
 def delete_image(file_path):
