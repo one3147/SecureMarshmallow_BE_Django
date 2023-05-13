@@ -279,6 +279,7 @@ def getAccessToken(request):
         if refresh_token:
             token = RefreshToken(refresh_token)
             access_token = str(token.access_token)
+            access_token.set_exp(lifetime=timedelta(hours=1))
             response = JsonResponse({'access_token': access_token})
             return response
         else:
