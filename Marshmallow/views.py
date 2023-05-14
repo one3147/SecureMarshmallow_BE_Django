@@ -1,4 +1,6 @@
 import jwt
+
+import config
 from Marshmallow.models import Marshmallow_User, Board, image
 import secrets
 import string
@@ -12,7 +14,7 @@ import re
 import bcrypt
 from datetime import timedelta
 from django.http import JsonResponse
-secret_key = 'django-insecure-(rt$j6+-i0u&1rg4%@li)n5-2ln85uyk(y7u4a+m^0t+szmpv*'
+secret_key = config.settings('SECRET_KEY')
 def user_login(request):
     if request.method == 'GET':
         id = request.GET.get('id')
@@ -35,13 +37,13 @@ def user_login(request):
 
             response = JsonResponse({
                 "user": user.id,
-                "message": "login success",
+                "success": True,
                 "access_token": access_token_encoded,
                 "refresh_token": refresh_token_encoded,
             })
             return response
         else:
-            return JsonResponse({'success': 'fail to login'})
+            return JsonResponse({'success': False})
 
 def user_logout(request):
     if request.method == 'POST':
