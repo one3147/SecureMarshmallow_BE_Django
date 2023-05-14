@@ -56,7 +56,7 @@ def user_logout(request):
         return response
 
     else:
-        return JsonResponse({'error': 'Invalid request Method.'})
+        return JsonResponse({'error': 'Invalid request Method.', 'success': False})
 
 
 def signup(request):
@@ -89,12 +89,12 @@ def signup(request):
             return JsonResponse({'error': str(e)})
         try:
             Marshmallow_User.objects.get(id=id)
-            return JsonResponse({'error': 'id is already exists.'})
+            return JsonResponse({'error': 'id is already exists.', 'success': False})
         except Marshmallow_User.DoesNotExist:
             pass
         try:
             Marshmallow_User.objects.get(email=email)
-            return JsonResponse({'error': 'Email is already exists.'})
+            return JsonResponse({'error': 'Email is already exists.', 'success': False})
         except Marshmallow_User.DoesNotExist:
             pass
         salt = bcrypt.gensalt()
@@ -105,18 +105,18 @@ def signup(request):
         user.save()
         return JsonResponse({'success': True})
     else:
-        return JsonResponse({'error': 'Invalid request method'})
+        return JsonResponse({'error': 'Invalid request method', 'success': False})
 
 
 def writeOrViewPost(request):
     access_token = request.POST.get('access_token') or request.GET.get('access_token')
     if not access_token:
-        return JsonResponse({'error': 'You need Access Token'})
+        return JsonResponse({'error': 'You need Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
         id = decoded_token.get('user_id')
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
-        return JsonResponse({'error': f'{e}'})
+        return JsonResponse({'error': f'{e}', 'success': False})
     if request.method == 'POST':  # 게시글 작성
         idx = request.POST.get('idx')
         title = request.POST.get('title')
@@ -156,7 +156,7 @@ def writeOrViewPost(request):
         page_obj = paginator.get_page(page_number)
         posts = page_obj.object_list
         if not posts:
-            return JsonResponse({'error': 'No posts'})
+            return JsonResponse({'error': 'No posts', 'success': False})
         response_data = {
             'count': len(posts),
             'num_pages': page_number,
@@ -164,7 +164,7 @@ def writeOrViewPost(request):
         }
         return JsonResponse(response_data)
     else:
-        return JsonResponse({'error': 'Invalid request method'})
+        return JsonResponse({'error': 'Invalid request method', 'success': False})
 
 
 
@@ -172,15 +172,18 @@ def writeOrViewPost(request):
 def Post(request, idx):
     access_token = request.GET.get('access_token') or request.POST.get('access_token')
     if not access_token:
-        return JsonResponse({'error': 'You need Access Token'})
+        return JsonResponse({'error': 'You need Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
         id = decoded_token.get('user_id')
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}'})
     if request.method == 'GET':  # 게시글 단일 조회
-        if len(id) > 50:
-            return JsonResponse({'error': 'id must be less than 50 digits.'})
+        try:
+            if len(id) > 50:
+                raise Exception('id must be less than 50 digits.')
+        except Exception as e:
+            return JsonResponse({'error': f'{str(e)}'})
         try:
             post = Board.objects.get(idx=idx, id=id)
             return JsonResponse({'success': 'True', 'idx': f'{idx}', 'post': f'{post}', 'title': f'{post.title}',
@@ -198,7 +201,7 @@ def Post(request, idx):
         try:
             board = Board.objects.get(idx=idx, id=id)
         except Board.DoesNotExist:
-            return JsonResponse({'error': 'Post does not exist.'})
+            return JsonResponse({'error': 'Post does not exist.', 'success': False})
         title = request.POST.get('title') or board.title
         contents = request.POST.get('contents') or board.contents
         password = request.POST.get('password') or board.password
@@ -232,20 +235,20 @@ def Post(request, idx):
 
         board = Board.objects.get(idx=idx, id=id)
         if board is None:
-            return JsonResponse({'error': 'Post does not exist.'})
+            return JsonResponse({'error': 'Post does not exist.', 'success': False})
         elif board.password != password:
-            return JsonResponse({'error': 'Wrong password.'})
+            return JsonResponse({'error': 'Wrong password.', 'success': False})
         else:
             board.delete_board()
             return JsonResponse({'Delete': True})
     else:
-        return JsonResponse({'error': 'Invalid request method'})
+        return JsonResponse({'error': 'Invalid request method', 'success': False})
 
 
 def search_posts(request):
     access_token = request.GET.get('access_token')
     if not access_token:
-        return JsonResponse({'error': 'You need Access Token'})
+        return JsonResponse({'error': 'You need Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
         id = decoded_token.get('user_id')
@@ -263,7 +266,7 @@ def search_posts(request):
         posts = Board.search_posts(search_word, id)
         return JsonResponse({'result': f'{posts}'})
     else:
-        return JsonResponse({'error': 'Invalid request method'})
+        return JsonResponse({'error': 'Invalid request method', 'success': False})
 
 
 
@@ -315,9 +318,9 @@ def getAccessToken(request):
             response = JsonResponse({'access_token': access_token_encoded})
             return response
         else:
-            return JsonResponse({'error': "You don't Have RefreshToken."})
+            return JsonResponse({'error': "You don't Have RefreshToken.", 'success': False})
     else:
-        return JsonResponse({'error': 'Invalid request method.'})
+        return JsonResponse({'error': 'Invalid request method.', 'success': False})
 
 def filename_filter(filename):
     pattern = r'^[\w\s\'-가-힣]+$'
@@ -327,7 +330,7 @@ def filename_filter(filename):
 def image_View(request):
     access_token = request.POST.get('access_token')
     if not access_token:
-        return JsonResponse({'error': 'You need Access Token'})
+        return JsonResponse({'error': 'You need Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
         id = decoded_token.get('user_id')
@@ -350,7 +353,7 @@ def image_View(request):
         try:
             image_obj = image.objects.get(image=filename, id=id)
         except image.DoesNotExist:
-            return JsonResponse({'error': 'Post does not exist'})
+            return JsonResponse({'error': 'Post does not exist', 'success': False})
 
         if os.path.exists(file_path):
             with open(file_path, 'rb') as image_file:
@@ -358,16 +361,16 @@ def image_View(request):
                 response['Content-Disposition'] = f'attachment; filename="{filename}"'
                 return response
         else:
-            return JsonResponse({'error': 'File not found'})
+            return JsonResponse({'error': 'File not found', 'success': False})
     else:
-        return JsonResponse({'error': 'Invalid Request Method'})
+        return JsonResponse({'error': 'Invalid Request Method', 'success': False})
 
 
 ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic']
 def image_upload(request):
     access_token = request.POST.get('access_token')
     if not access_token:
-        return JsonResponse({'error': 'You need Access Token'})
+        return JsonResponse({'error': 'You need Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
         id = decoded_token.get('user_id')
@@ -384,11 +387,11 @@ def image_upload(request):
             try:
                 file_extension = os.path.splitext(Realimage.name)[1].lower()
                 if file_extension not in ALLOWED_EXTENSIONS:
-                    return JsonResponse({'error': 'Invalid file extension.'})
+                    return JsonResponse({'error': 'Invalid file extension.', 'success': False})
                 file_size = Realimage.size
                 max_file_size = 8 * 1024 * 1024
                 if file_size > max_file_size:
-                    return JsonResponse({'error': 'File Maximum size is 8mb.'})
+                    return JsonResponse({'error': 'File Maximum size is 8mb.', 'success': False})
                 save_path = './media/images/'
                 file_name = Realimage.name
                 file_path = os.path.join(save_path, file_name)
@@ -401,15 +404,15 @@ def image_upload(request):
             except Exception as e:
                 return JsonResponse({'error': str(e)})
         else:
-            return JsonResponse({'error': 'No Image..'})
+            return JsonResponse({'error': 'No Image..', 'success': False})
     else:
-        return JsonResponse({'error': 'Invalid Request Method'})
+        return JsonResponse({'error': 'Invalid Request Method', 'success': False})
 
 
 def delete_uploaded_image(request):
     access_token = request.POST.get('access_token')
     if not access_token:
-        return JsonResponse({'error': 'You need Access Token'})
+        return JsonResponse({'error': 'You need Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
         id = decoded_token.get('user_id')
@@ -430,11 +433,11 @@ def delete_uploaded_image(request):
                 imageModel.delete_image()
                 return JsonResponse({'success': True})
             else:
-                return JsonResponse({'error': 'File not found'})
+                return JsonResponse({'error': 'File not found', 'success': False})
         else:
-            return JsonResponse({'error': 'Invalid file path'})
+            return JsonResponse({'error': 'Invalid file path', 'success': False})
     else:
-        return JsonResponse({'error': 'Invalid request method'})
+        return JsonResponse({'error': 'Invalid request method', 'success': False})
 
 
 def delete_image(file_path):
