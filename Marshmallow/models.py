@@ -30,6 +30,7 @@ class Board(models.Model): #게시글 모델
     idx = models.IntegerField(null=False,primary_key=True)
     id = models.CharField(max_length=50, null=True)
     title = models.CharField(max_length=255,null=False)
+    hashtag = models.CharField(max_length=255, null=True)
     contents = models.CharField(max_length=3000,null=False)
     password = models.CharField(max_length=255)
     @classmethod
@@ -47,12 +48,14 @@ class Board(models.Model): #게시글 모델
 
     @classmethod
     def search_posts(cls, keyword,id):
-        return cls.objects.filter(title__icontains=keyword,id=id)
+        result = cls.objects.filter(title__icontains=keyword,id=id)
+        result += cls.objects.filter(hashtag__icontains=keyword, id=id)
+        return result
     def __str__(self):
         return str(self.title)
 
 #모델 구현
-class image(models.Model): #게시글 모델
+class image(models.Model):
     id = models.CharField(max_length=255, null=False,primary_key=True)
     image = models.ImageField(upload_to="images/", null=True, blank=True)
     def delete_image(self):
