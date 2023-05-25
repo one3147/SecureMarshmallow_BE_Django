@@ -391,11 +391,9 @@ def image_upload(request):
 
             file_name = Realimage.name
             file_data = Realimage.read()
-            save_path = './media/images/'
-            file_path = os.path.join(save_path, file_name)
-
+            UUID = uuid.uuid4()
             file_entity = image(
-                id=uuid.uuid4(),
+                id=UUID,
                 file_name=file_name,
                 file_size=file_size,
                 created_at=datetime.datetime.now(),
@@ -403,17 +401,12 @@ def image_upload(request):
                 created_by=created_by
             )
             file_entity.save()
-
             file_data_entity = imageData(
-                file_id=file_entity.id,
+                file_id=UUID,
                 data=file_data
             )
             file_data_entity.save()
-
-            with open(file_path, 'wb+') as destination:
-                destination.write(file_data)
-
-            return JsonResponse({'success': True, 'file_path': file_path})
+            return JsonResponse({'success': True})
 
         except ValueError as e:
             return JsonResponse({'error': str(e)})
