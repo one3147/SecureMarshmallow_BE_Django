@@ -1,7 +1,6 @@
 import jwt
-
 import config
-from Marshmallow.models import Marshmallow_User, Board, image
+from Marshmallow.models import Board
 import secrets
 import string
 from django.core.paginator import Paginator
@@ -14,7 +13,11 @@ import re
 import bcrypt
 from datetime import timedelta
 from django.http import JsonResponse
+import uuid
+import datetime
+from .models import image,imageData
 secret_key = config.settings.SECRET_KEY
+
 def user_login(request):
     if request.method == 'GET':
         id = request.GET.get('id')
@@ -367,44 +370,69 @@ def image_View(request):
 
 
 ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic']
+
+
 def image_upload(request):
     access_token = request.POST.get('access_token')
     if not access_token:
-        return JsonResponse({'error': 'You need Access Token', 'success': False})
+        return JsonResponse({'error': 'You need an Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
-        id = decoded_token.get('user_id')
+        created_by = decoded_token.get('user_id')
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}'})
+
     if request.method == 'POST':
         Realimage = request.FILES.get('image', None)
+
         try:
-            if len(id) > 50:
+            if len(created_by) > 50:
                 raise ValueError("id must be less than 50 digits.")
+
+            if not Realimage:
+                return JsonResponse({'error': 'No Image.', 'success': False})
+
+            file_extension = os.path.splitext(Realimage.name)[1].lower()
+            if file_extension not in ALLOWED_EXTENSIONS:
+                return JsonResponse({'error': 'Invalid file extension.', 'success': False})
+
+            file_size = Realimage.size
+            max_file_size = 8 * 1024 * 1024
+            if file_size > max_file_size:
+                return JsonResponse({'error': 'File Maximum size is 8MB.', 'success': False})
+
+            file_name = Realimage.name
+            file_data = Realimage.read()
+            save_path = './media/images/'
+            file_path = os.path.join(save_path, file_name)
+
+            file_entity = image(
+                id=uuid.uuid4(),
+                name=file_name,
+                size=file_size,
+                created_at=datetime.datetime.now(),
+                is_processed=False,
+                user_id=created_by
+            )
+            file_entity.save()
+
+            file_data_entity = imageData(
+                file_id=file_entity.id,
+                data=file_data
+            )
+            file_data_entity.save()
+
+            with open(file_path, 'wb+') as destination:
+                destination.write(file_data)
+
+            return JsonResponse({'success': True, 'file_path': file_path})
+
         except ValueError as e:
             return JsonResponse({'error': str(e)})
-        if Realimage:
-            try:
-                file_extension = os.path.splitext(Realimage.name)[1].lower()
-                if file_extension not in ALLOWED_EXTENSIONS:
-                    return JsonResponse({'error': 'Invalid file extension.', 'success': False})
-                file_size = Realimage.size
-                max_file_size = 8 * 1024 * 1024
-                if file_size > max_file_size:
-                    return JsonResponse({'error': 'File Maximum size is 8mb.', 'success': False})
-                save_path = './media/images/'
-                file_name = Realimage.name
-                file_path = os.path.join(save_path, file_name)
-                imageModel = image(id=id, image=file_name)
-                imageModel.save()
-                with open(file_path, 'wb+') as destination:
-                    for chunk in Realimage.chunks():
-                        destination.write(chunk)
-                return JsonResponse({'success': True, 'file_path': file_path})
-            except Exception as e:
-                return JsonResponse({'error': str(e)})
-        else:
-            return JsonResponse({'error': 'No Image..', 'success': False})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+
     else:
         return JsonResponse({'error': 'Invalid Request Method', 'success': False})
 

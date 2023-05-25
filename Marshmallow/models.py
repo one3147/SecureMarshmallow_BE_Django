@@ -1,7 +1,10 @@
+import uuid
+from datetime import timezone
+
 from django.contrib.auth.models import UserManager
 from django.db import models
 from django.contrib.auth.hashers import check_password as django_check_password
-
+from django.utils import timezone
 
 # Create your models here.
 class Marshmallow_User(models.Model): #유저 모델
@@ -54,9 +57,24 @@ class Board(models.Model): #게시글 모델
     def __str__(self):
         return str(self.title)
 
-#모델 구현
+
 class image(models.Model):
-    id = models.CharField(max_length=255, null=False,primary_key=True)
-    image = models.ImageField(upload_to="images/", null=True, blank=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    create_at = models.DateTimeField(null=True, default=timezone.now)
+    file_name = models.CharField(max_length=255, null=True)
+    file_size = models.BigIntegerField(null=True)
+    is_deleted = models.BooleanField(null=True)
+    created_by = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return self.file_name
+
     def delete_image(self):
         self.delete()
+
+class imageData(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    data = models.BinaryField()
+
+    def __str__(self):
+        return str(self.id)

@@ -37,10 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'Marshmallow',
     'rest_framework_simplejwt',
     'rest_framework',
     'rest_framework.authtoken',
+
+    'Marshmallow',
 ]
 
 
