@@ -341,7 +341,7 @@ def image_View(request, uuid):
         id = decoded_token.get('user_id')
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}'})
-    if request.method == 'POST':
+    if request.method == 'GET':
         try:
             if len(id) > 50:
                 raise ValueError("id must be less than 50 digits.")
@@ -360,6 +360,19 @@ def image_View(request, uuid):
 
 ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic']
 
+def image_load(request):
+    access_token = request.POST.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need an Access Token', 'success': False})
+    try:
+        decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
+    except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
+        return JsonResponse({'error': f'{e}'})
+    image_list = image.objects.get()
+    response = ""
+    for i in image_list:
+        response += i
+    return JsonResponse({'success': response})
 
 def image_upload(request):
     access_token = request.POST.get('access_token')
@@ -372,7 +385,6 @@ def image_upload(request):
         return JsonResponse({'error': f'{e}'})
     if request.method == 'POST':
         Realimage = request.FILES.get('image', None)
-
         try:
             if len(created_by) > 50:
                 raise ValueError("id must be less than 50 digits.")

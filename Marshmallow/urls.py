@@ -17,8 +17,9 @@ urlpatterns = [ #매핑 패턴
     path('createpassword',views.CreatePassword),
 
 
-    path('api/file', views.image_upload),
+    path('api/file', views.image_load),
     path('api/files/<str:uuid>', views.image_View),
     path('api/files/upload',views.image_upload),
+
     path('api/flag', views.flag),
 ] + static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
