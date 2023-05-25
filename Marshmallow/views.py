@@ -372,7 +372,7 @@ def image_load(request):
     response = ""
     for i in image_list:
         response += i
-    return JsonResponse({'success': response})
+    return JsonResponse({'image_list': response})
 
 def image_upload(request):
     access_token = request.POST.get('access_token')
