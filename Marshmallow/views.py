@@ -284,28 +284,7 @@ def CreatePassword(request):
         return JsonResponse({'error': 'Invalid request method'})
 
 
-def profile(request):
-    access_token = request.POST.get('access_token')
-    try:
-        decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
-        id = decoded_token.get('user_id')
-    except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
-        return JsonResponse({'error': f'{e}'})
-    if not access_token:
-        return JsonResponse({'error': 'You need Access Token'})
-    if request.method == 'POST':
-        try:
-            if len(id) > 50:
-                raise ValueError('id must be less than 50 digits.')
-        except ValueError as e:
-            return JsonResponse({'error': str(e)})
-        try:
-            user = Marshmallow_User.objects.get(id=id)
-        except Marshmallow_User.DoesNotExist as e:
-            return JsonResponse({'error': f'{str(e)}'})
-        return JsonResponse({'user': f'{user}'})
-    else:
-        return JsonResponse({'error': 'Invalid request method.'})
+
 
 
 def getAccessToken(request):
@@ -355,24 +334,37 @@ def image_View(request, uuid):
             return JsonResponse({'error': 'Image does not exist', 'success': False})
 
         return image_obj
-    else:
+    elif request.method=='DELETE':
        delete_uploaded_image(uuid,id)
-
+    else:
+        return JsonResponse({'error': 'Invalid Request Method', 'success': False})
 ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic']
 
 def image_load(request):
-    access_token = request.POST.get('access_token')
-    if not access_token:
-        return JsonResponse({'error': 'You need an Access Token', 'success': False})
-    try:
-        decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
-    except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
-        return JsonResponse({'error': f'{e}'})
-    image_list = image.objects.get()
-    response = ""
-    for i in image_list:
-        response += i
-    return JsonResponse({'image_list': response})
+    if request.method=='GET':
+        access_token = request.POST.get('access_token')
+        if not access_token:
+            return JsonResponse({'error': 'You need an Access Token', 'success': False})
+        try:
+            decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
+            created_by = decoded_token.get('user_id')
+        except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
+            return JsonResponse({'error': f'{e}'})
+
+        try:
+            if len(created_by) > 50:
+                raise ValueError("id must be less than 50 digits.")
+        except ValueError as e:
+            return JsonResponse({'error': str(e)})
+
+        image_list = image.objects.get()
+        response = ""
+        for i in image_list:
+            response += i
+        return JsonResponse({'image_list': response})
+    else:
+        return JsonResponse({'error': 'Invalid Request Method', 'success': False})
+
 
 def image_upload(request):
     access_token = request.POST.get('access_token')
@@ -414,7 +406,7 @@ def image_upload(request):
             )
             file_entity.save()
             file_data_entity = imageData(
-                file_id=UUID,
+                id=UUID,
                 data=file_data
             )
             file_data_entity.save()
@@ -430,9 +422,9 @@ def image_upload(request):
         return JsonResponse({'error': 'Invalid Request Method', 'success': False})
 
 
-def delete_uploaded_image(uuid, user_id):
+def delete_uploaded_image(uuid):
     image_model = image.objects.get(id=uuid)
-    image_data_model = imageData.objects.get(id=user_id)
+    image_data_model = imageData.objects.get(id=uuid)
     image_model.delete_image()
     image_data_model.delete()
     return JsonResponse({'success': True})
