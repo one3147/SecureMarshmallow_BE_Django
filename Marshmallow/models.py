@@ -78,3 +78,5 @@ class imageData(models.Model):
 
     def __str__(self):
         return str(self.id)
+    def delete(self):
+        self.delete()

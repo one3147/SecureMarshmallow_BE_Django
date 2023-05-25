@@ -1,4 +1,6 @@
 import jwt
+from django.core.exceptions import ObjectDoesNotExist
+
 import config
 from Marshmallow.models import Board
 import secrets
@@ -330,7 +332,7 @@ def filename_filter(filename):
     return re.match(pattern, filename) is not None
 
 
-def image_View(request):
+def image_View(request, uuid):
     access_token = request.POST.get('access_token')
     if not access_token:
         return JsonResponse({'error': 'You need Access Token', 'success': False})
@@ -340,34 +342,21 @@ def image_View(request):
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}'})
     if request.method == 'POST':
-        filename = request.POST.get('filename')
         try:
-            if "../" in filename:
-                raise ValueError("Invalid filename.")
             if len(id) > 50:
                 raise ValueError("id must be less than 50 digits.")
-            if len(filename) > 255:
-                raise ValueError("filename must be less than 255 digits.")
-            if not filename_filter(filename):
-                raise ValueError("Invalid filename.")
+            if len(uuid) > 255:
+                raise ValueError("uuid must be less than 255 digits.")
         except ValueError as e:
             return JsonResponse({'error': str(e)})
-        file_path = os.path.join(settings.MEDIA_ROOT, 'images', filename)
         try:
-            image_obj = image.objects.get(image=filename, id=id)
+            image_obj = imageData.objects.get(id=uuid)
         except image.DoesNotExist:
-            return JsonResponse({'error': 'Post does not exist', 'success': False})
+            return JsonResponse({'error': 'Image does not exist', 'success': False})
 
-        if os.path.exists(file_path):
-            with open(file_path, 'rb') as image_file:
-                response = HttpResponse(image_file.read(), content_type='image/*')
-                response['Content-Disposition'] = f'attachment; filename="{filename}"'
-                return response
-        else:
-            return JsonResponse({'error': 'File not found', 'success': False})
+        return image_obj
     else:
-        return JsonResponse({'error': 'Invalid Request Method', 'success': False})
-
+       delete_uploaded_image(uuid,id)
 
 ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp','.heic']
 
@@ -381,7 +370,6 @@ def image_upload(request):
         created_by = decoded_token.get('user_id')
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}'})
-
     if request.method == 'POST':
         Realimage = request.FILES.get('image', None)
 
@@ -408,11 +396,11 @@ def image_upload(request):
 
             file_entity = image(
                 id=uuid.uuid4(),
-                name=file_name,
-                size=file_size,
+                file_name=file_name,
+                file_size=file_size,
                 created_at=datetime.datetime.now(),
-                is_processed=False,
-                user_id=created_by
+                is_deleted=False,
+                created_by=created_by
             )
             file_entity.save()
 
@@ -437,46 +425,14 @@ def image_upload(request):
         return JsonResponse({'error': 'Invalid Request Method', 'success': False})
 
 
-def delete_uploaded_image(request):
-    access_token = request.POST.get('access_token')
-    if not access_token:
-        return JsonResponse({'error': 'You need Access Token', 'success': False})
-    try:
-        decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
-        id = decoded_token.get('user_id')
-    except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
-        return JsonResponse({'error': f'{e}'})
-    if request.method == 'POST':
-        filename = request.POST.get('filename')
-        try:
-            if "../" in filename:
-                raise ValueError("Invalid filename.")
-        except ValueError as e:
-            return JsonResponse({'error': str(e)})
-        imageModel = image.objects.get(id=id)
-        file_path = f'./media/images/{filename}'
-        if file_path:
-            deleted = delete_image(file_path)
-            if deleted:
-                imageModel.delete_image()
-                return JsonResponse({'success': True})
-            else:
-                return JsonResponse({'error': 'File not found', 'success': False})
-        else:
-            return JsonResponse({'error': 'Invalid file path', 'success': False})
-    else:
-        return JsonResponse({'error': 'Invalid request method', 'success': False})
+def delete_uploaded_image(uuid, user_id):
+    image_model = image.objects.get(id=uuid)
+    image_data_model = imageData.objects.get(id=user_id)
+    image_model.delete_image()
+    image_data_model.delete()
+    return JsonResponse({'success': True})
 
 
-def delete_image(file_path):
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return True
-        else:
-            return False
-    except Exception as e:
-        return str(e)
 
 def flag(request):
     if request.method == 'PUT':
