@@ -2,9 +2,7 @@ import jwt
 from django.core.exceptions import ObjectDoesNotExist
 
 import config
-from Marshmallow.models import Board
-import secrets
-import string
+from Marshmallow.models import article
 from django.core.paginator import Paginator
 from config import settings
 from .models import Marshmallow_User
@@ -112,6 +110,41 @@ def signup(request):
     else:
         return JsonResponse({'error': 'Invalid request method', 'success': False})
 
+def getAccessToken(request):
+    if request.method == 'POST':
+        refresh_token = request.POST.get('refresh_token')
+        try:
+            if len(refresh_token) > 100:
+                raise ValueError("Refresh Token's length is too long.")
+        except ValueError as e:
+            return JsonResponse({'error': str(e)})
+        if refresh_token:
+            access_token = refresh_token.access_token
+            access_token.set_exp(lifetime=timedelta(hours=1))
+            access_token_encoded = jwt.encode(access_token.payload, secret_key, algorithm='HS256')
+            response = JsonResponse({'access_token': access_token_encoded})
+            return response
+        else:
+            return JsonResponse({'error': "You don't Have RefreshToken.", 'success': False})
+    else:
+        return JsonResponse({'error': 'Invalid request method.', 'success': False})
+
+
+
+
+
+
+
+
+    # 메모 CRUD
+
+
+
+
+
+
+
+
 
 def writeOrViewPost(request):
     access_token = request.POST.get('access_token') or request.GET.get('access_token')
@@ -143,33 +176,62 @@ def writeOrViewPost(request):
             new_password = password.encode('utf-8')
             hash_password = bcrypt.hashpw(new_password, salt)
             decode_hash_password = hash_password.decode('utf-8')
-            board = Board(idx=idx, title=title, contents=contents, password=decode_hash_password, id=id)
+            board = article(idx=idx, title=title, contents=contents, password=decode_hash_password, id=id)
         else:
-            board = Board(idx=idx, title=title, contents=contents, id=id)
+            board = article(idx=idx, title=title, contents=contents, id=id)
         board.save()
         return JsonResponse({'success': True})
     elif request.method == 'GET':  # 게시글 페이징 , 게시글 다수 조회
+        searchValue = request.GET.get('searchValue')
+        searchType = request.GET.get('searchType')
         try:
             if len(id) > 50:
                 raise Exception('id must be less than 50 digits.')
+            if len(searchType) > 30:
+                raise Exception('searchType must be less than 30 digits.')
+            if len(searchValue) > 100:
+                raise Exception('searchValue must be less than 50 digits.')
         except Exception as e:
             return JsonResponse({'error': str(e)})
-        paginator = Paginator(Board.objects.filter(id=id), 10)
-        page_number = request.GET.get('number')
-        if not page_number:
-            page_number = 1
-        page_obj = paginator.get_page(page_number)
-        posts = page_obj.object_list
-        if not posts:
-            return JsonResponse({'error': 'No posts', 'success': False})
-        response_data = {
-            'count': len(posts),
-            'num_pages': page_number,
-            'posts': [{'idx': post.idx, 'title': post.title, 'id': post.id} for post in posts],
-        }
-        return JsonResponse(response_data)
+        if searchValue or searchType:
+            search_posts(searchValue,searchType)
+        else:
+            paginator = Paginator(article.objects.filter(id=id), 10)
+            page_number = request.GET.get('number')
+            if not page_number:
+                page_number = 1
+            page_obj = paginator.get_page(page_number)
+            posts = page_obj.object_list
+            if not posts:
+                return JsonResponse({'error': 'No posts', 'success': False})
+            response_data = {
+                'count': len(posts),
+                'num_pages': page_number,
+                'posts': [{'idx': post.idx, 'title': post.title, 'id': post.id} for post in posts],
+            }
+            return JsonResponse(response_data)
     else:
         return JsonResponse({'error': 'Invalid request method', 'success': False})
+
+def search_posts(searchValue,searchType):
+    try:
+        if len(id) > 50:
+            raise Exception('id must be less than 50 digits.')
+        if len(searchValue) > 300:
+            raise Exception('search word must be less than 300 digits.')
+        if len(searchType) > 300:
+            raise Exception('search word must be less than 300 digits.')
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+    if searchType == 'TITLE':
+        articles = article.objects.filter(title__contains=searchValue)
+    elif searchType == 'NICKNAME':
+        articles = article.objects.filter(created_by__contains=searchValue)
+    elif searchType == 'ID':
+        articles = article.objects.filter(id=searchValue)
+    elif searchType == 'CONTENT':
+        articles = article.objects.filter(content__contains=searchValue)
+    return JsonResponse({'result': f'{articles}'})
 
 
 
@@ -190,10 +252,10 @@ def Post(request, idx):
         except Exception as e:
             return JsonResponse({'error': f'{str(e)}'})
         try:
-            post = Board.objects.get(idx=idx, id=id)
+            post = article.objects.get(idx=idx, id=id)
             return JsonResponse({'success': 'True', 'idx': f'{idx}', 'post': f'{post}', 'title': f'{post.title}',
                                  'contents': f'{post.contents}', 'password': f'{post.password}'})
-        except Board.DoesNotExist:
+        except article.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
     elif request.method in ['POST'] and not request.POST.get('delete'):  # 게시글 수정
         try:
@@ -204,8 +266,8 @@ def Post(request, idx):
         except Exception as e:
             return JsonResponse({'error': str(e)})
         try:
-            board = Board.objects.get(idx=idx, id=id)
-        except Board.DoesNotExist:
+            board = article.objects.get(idx=idx, id=id)
+        except article.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist.', 'success': False})
         title = request.POST.get('title') or board.title
         contents = request.POST.get('contents') or board.contents
@@ -238,7 +300,7 @@ def Post(request, idx):
         except Exception as e:
             return JsonResponse({'error': str(e)})
 
-        board = Board.objects.get(idx=idx, id=id)
+        board = article.objects.get(idx=idx, id=id)
         if board is None:
             return JsonResponse({'error': 'Post does not exist.', 'success': False})
         elif board.password != password:
@@ -250,61 +312,22 @@ def Post(request, idx):
         return JsonResponse({'error': 'Invalid request method', 'success': False})
 
 
-def search_posts(request):
-    access_token = request.GET.get('access_token')
-    if not access_token:
-        return JsonResponse({'error': 'You need Access Token', 'success': False})
-    try:
-        decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
-        id = decoded_token.get('user_id')
-    except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
-        return JsonResponse({'error': f'{e}'})
-    if request.method == 'GET':
-        search_word = request.GET.get('search_word')
-        try:
-            if len(id) > 50:
-                raise Exception('id must be less than 50 digits.')
-            if len(search_word) > 300:
-                raise Exception('search word must be less than 300 digits.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
-        posts = Board.search_posts(search_word, id)
-        return JsonResponse({'result': f'{posts}'})
-    else:
-        return JsonResponse({'error': 'Invalid request method', 'success': False})
-
-
-
-def CreatePassword(request):
-    if request.method == 'POST':
-        alphabet = string.ascii_letters + string.digits + string.punctuation
-        password = ''.join(secrets.choice(alphabet) for i in range(16))
-        return JsonResponse({'Password': f"{password}"})
-    else:
-        return JsonResponse({'error': 'Invalid request method'})
 
 
 
 
 
-def getAccessToken(request):
-    if request.method == 'POST':
-        refresh_token = request.POST.get('refresh_token')
-        try:
-            if len(refresh_token) > 100:
-                raise ValueError("Refresh Token's length is too long.")
-        except ValueError as e:
-            return JsonResponse({'error': str(e)})
-        if refresh_token:
-            access_token = refresh_token.access_token
-            access_token.set_exp(lifetime=timedelta(hours=1))
-            access_token_encoded = jwt.encode(access_token.payload, secret_key, algorithm='HS256')
-            response = JsonResponse({'access_token': access_token_encoded})
-            return response
-        else:
-            return JsonResponse({'error': "You don't Have RefreshToken.", 'success': False})
-    else:
-        return JsonResponse({'error': 'Invalid request method.', 'success': False})
+
+
+
+
+    # 파일 CRUD
+
+
+
+
+
+
 
 def filename_filter(filename):
     pattern = r'^[\w\s\'-가-힣]+$'

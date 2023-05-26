@@ -29,17 +29,18 @@ class Marshmallow_User(models.Model): #유저 모델
         return django_check_password(raw_password, self.password)
 
 
-class Board(models.Model): #게시글 모델
-    idx = models.IntegerField(null=False,primary_key=True)
-    id = models.CharField(max_length=50, null=True)
-    title = models.CharField(max_length=255,null=False)
+class article(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    created_at = models.DateTimeField()
+    created_by = models.CharField(max_length=100)
+    modified_at = models.DateTimeField()
+    modified_by = models.CharField(max_length=100)
+    content = models.CharField(max_length=10000)
     hashtag = models.CharField(max_length=255, null=True)
-    contents = models.CharField(max_length=3000,null=False)
-    password = models.CharField(max_length=255)
+    title = models.CharField(max_length=255)
     @classmethod
     def create_board(cls, **kwargs):
         return cls.objects.create(**kwargs)
-
     @classmethod
     def get_board(cls, idx,id):
         try:
@@ -48,7 +49,6 @@ class Board(models.Model): #게시글 모델
             return None
     def delete_board(self):
         self.delete()
-
     @classmethod
     def search_posts(cls, keyword,id):
         result = cls.objects.filter(title__icontains=keyword,id=id)

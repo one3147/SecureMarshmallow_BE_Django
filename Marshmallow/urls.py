@@ -6,15 +6,13 @@ app_name = "Marshmallow"
 urlpatterns = [ #매핑 패턴
     path('api/login', views.user_login),
     path('api/logout', views.user_logout),
-    path('api/sign-up', views.signup),
+    path('api/signup', views.signup),
     path('api/refresh-token',views.getAccessToken),
 
-
+    path('articles', views.writeOrViewPost),
     path('articles/form', views.writeOrViewPost),
-    path('articles/<int:idx>', views.Post),
-    path('articles/search', views.search_posts),
-    path('profile', views.profile),
-    path('createpassword',views.CreatePassword),
+    path('articles/<int:idx>/form', views.Post),
+    path('articles/<int:idx>/delete', views.Post),
 
 
     path('api/file', views.image_load),
