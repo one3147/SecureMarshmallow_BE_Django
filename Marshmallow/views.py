@@ -149,36 +149,36 @@ def getAccessToken(request):
 def writeOrViewPost(request):
     access_token = request.POST.get('access_token') or request.GET.get('access_token')
     if not access_token:
-        return JsonResponse({'error': 'You need Access Token', 'success': False})
+        return JsonResponse({'error': 'You need an Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
-        id = decoded_token.get('user_id')
+        created_by = Marshmallow_User.objects.get(id=decoded_token.get('user_id'))
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}', 'success': False})
     if request.method == 'POST':  # 게시글 작성
         idx = request.POST.get('idx')
+        content = request.POST.get('content')
+        hashtag = request.POST.get('hashtag')
         title = request.POST.get('title')
-        contents = request.POST.get('contents')
-        password = request.POST.get('password')
+        password = 1234
         try:
-            if len(id) > 50:
-                raise Exception('id must be less than 50 digits.')
+            if len(created_by.username) > 50:
+                raise Exception('username must be less than 50 digits.')
             if len(title) > 255:
                 raise Exception('title must be less than 255 digits.')
-            if len(contents) > 3000:
-                raise Exception('contents must be less than 3000 digits.')
-            if len(password) > 255:
-                raise Exception('password must be less than 255 digits.')
+            if len(content) > 3000:
+                raise Exception('content must be less than 3000 digits.')
+            if len(hashtag) > 255:
+                raise Exception('hashtag must be less than 255 digits.')
         except Exception as e:
             return JsonResponse({'error': str(e)})
-        if password:
-            salt = bcrypt.gensalt()
-            new_password = password.encode('utf-8')
-            hash_password = bcrypt.hashpw(new_password, salt)
-            decode_hash_password = hash_password.decode('utf-8')
-            board = article(idx=idx, title=title, contents=contents, password=decode_hash_password, id=id)
-        else:
-            board = article(idx=idx, title=title, contents=contents, id=id)
+        # if password:
+        #     salt = bcrypt.gensalt()
+        #     new_password = password.encode('utf-8')
+        #     hash_password = bcrypt.hashpw(new_password, salt)
+        #     decode_hash_password = hash_password.decode('utf-8')
+        #     board = article(idx=idx, title=title, contents=content, password=decode_hash_password, created_by=created_by,hashtag=hashtag)
+        board = article(idx=idx, title=title, contents=content, created_by=created_by,hashtag=hashtag)
         board.save()
         return JsonResponse({'success': True})
     elif request.method == 'GET':  # 게시글 페이징 , 게시글 다수 조회
@@ -194,9 +194,9 @@ def writeOrViewPost(request):
         except Exception as e:
             return JsonResponse({'error': str(e)})
         if searchValue or searchType:
-            search_posts(searchValue,searchType)
+            search_posts(searchValue,searchType,id)
         else:
-            paginator = Paginator(article.objects.filter(id=id), 10)
+            paginator = Paginator(article.objects.filter(created_by=id), 10)
             page_number = request.GET.get('number')
             if not page_number:
                 page_number = 1
@@ -207,15 +207,15 @@ def writeOrViewPost(request):
             response_data = {
                 'count': len(posts),
                 'num_pages': page_number,
-                'posts': [{'idx': post.idx, 'title': post.title, 'id': post.id} for post in posts],
+                'posts': [{'idx': post.idx, 'title': post.title,'content':post.contents, 'id': post.id} for post in posts],
             }
             return JsonResponse(response_data)
     else:
         return JsonResponse({'error': 'Invalid request method', 'success': False})
 
-def search_posts(searchValue,searchType):
+def search_posts(searchValue,searchType,userId):
     try:
-        if len(id) > 50:
+        if len(userId) > 50:
             raise Exception('id must be less than 50 digits.')
         if len(searchValue) > 300:
             raise Exception('search word must be less than 300 digits.')
@@ -224,13 +224,13 @@ def search_posts(searchValue,searchType):
     except Exception as e:
         return JsonResponse({'error': str(e)})
     if searchType == 'TITLE':
-        articles = article.objects.filter(title__contains=searchValue)
+        articles = article.objects.filter(title__contains=searchValue,created_by=userId)
     elif searchType == 'NICKNAME':
-        articles = article.objects.filter(created_by__contains=searchValue)
+        articles = article.objects.filter(created_by__contains=searchValue,created_by=userId)
     elif searchType == 'ID':
-        articles = article.objects.filter(id=searchValue)
+        articles = article.objects.filter(id=searchValue,created_by=userId)
     elif searchType == 'CONTENT':
-        articles = article.objects.filter(content__contains=searchValue)
+        articles = article.objects.filter(content__contains=searchValue,created_by=userId)
     return JsonResponse({'result': f'{articles}'})
 
 
