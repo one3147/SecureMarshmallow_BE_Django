@@ -9,10 +9,10 @@ urlpatterns = [ #매핑 패턴
     path('api/signup', views.signup),
     path('api/refresh-token',views.getAccessToken),
 
-    path('articles', views.writeOrViewPost),
-    path('articles/form', views.writeOrViewPost),
-    path('articles/<int:idx>/form', views.Post),
-    path('articles/<int:idx>/delete', views.Post),
+    path('articles', views.ViewPost),
+    path('articles/form', views.writePost),
+    path('articles/<int:idx>/form', views.editPost),
+    path('articles/<int:idx>/delete', views.deletePost),
 
 
     path('api/file', views.image_load),

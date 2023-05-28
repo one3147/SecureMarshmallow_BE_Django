@@ -1,5 +1,6 @@
 import jwt
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 
 import config
 from Marshmallow.models import article
@@ -146,13 +147,14 @@ def getAccessToken(request):
 
 
 
-def writeOrViewPost(request):
+def writePost(request):
     access_token = request.POST.get('access_token') or request.GET.get('access_token')
     if not access_token:
         return JsonResponse({'error': 'You need an Access Token', 'success': False})
     try:
         decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
-        created_by = Marshmallow_User.objects.get(id=decoded_token.get('user_id'))
+        user_id = decoded_token.get('user_id')
+        MarshmallowUser = Marshmallow_User.objects.get(id=user_id)
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}', 'success': False})
     if request.method == 'POST':  # 게시글 작성
@@ -160,39 +162,28 @@ def writeOrViewPost(request):
         content = request.POST.get('content')
         hashtag = request.POST.get('hashtag')
         title = request.POST.get('title')
-        password = 1234
-        try:
-            if len(created_by.username) > 50:
-                raise Exception('username must be less than 50 digits.')
-            if len(title) > 255:
-                raise Exception('title must be less than 255 digits.')
-            if len(content) > 3000:
-                raise Exception('content must be less than 3000 digits.')
-            if len(hashtag) > 255:
-                raise Exception('hashtag must be less than 255 digits.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
-        # if password:
-        #     salt = bcrypt.gensalt()
-        #     new_password = password.encode('utf-8')
-        #     hash_password = bcrypt.hashpw(new_password, salt)
-        #     decode_hash_password = hash_password.decode('utf-8')
-        #     board = article(idx=idx, title=title, contents=content, password=decode_hash_password, created_by=created_by,hashtag=hashtag)
-        board = article(idx=idx, title=title, contents=content, created_by=created_by,hashtag=hashtag)
+        if checkLength(user_id, 50) or checkLength(title, 255) or checkLength(content, 10000) or checkLength(hashtag,255):
+            return JsonResponse({'error': False})
+        board = article(id=idx, title=title, content=content, created_by=user_id,hashtag=hashtag,created_at = timezone.now())
         board.save()
         return JsonResponse({'success': True})
-    elif request.method == 'GET':  # 게시글 페이징 , 게시글 다수 조회
+
+
+def ViewPost(request):
+    access_token = request.POST.get('access_token') or request.GET.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need an Access Token', 'success': False})
+    try:
+        decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
+        user_id = decoded_token.get('user_id')
+        MarshmallowUser = Marshmallow_User.objects.get(id=user_id)
+    except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
+        return JsonResponse({'error': f'{e}', 'success': False})
+    if request.method == 'GET':  # 게시글 페이징 , 게시글 다수 조회
         searchValue = request.GET.get('searchValue')
         searchType = request.GET.get('searchType')
-        try:
-            if len(id) > 50:
-                raise Exception('id must be less than 50 digits.')
-            if len(searchType) > 30:
-                raise Exception('searchType must be less than 30 digits.')
-            if len(searchValue) > 100:
-                raise Exception('searchValue must be less than 50 digits.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
+        if checkLength(id,50) or checkLength(searchValue,255) or checkLength(searchType,50):
+            return JsonResponse({'error': False})
         if searchValue or searchType:
             search_posts(searchValue,searchType,id)
         else:
@@ -236,7 +227,7 @@ def search_posts(searchValue,searchType,userId):
 
 
 
-def Post(request, idx):
+def editPost(request, idx):
     access_token = request.GET.get('access_token') or request.POST.get('access_token')
     if not access_token:
         return JsonResponse({'error': 'You need Access Token', 'success': False})
@@ -245,6 +236,62 @@ def Post(request, idx):
         id = decoded_token.get('user_id')
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}'})
+    if request.method == 'POST':  # 게시글 수정
+        try:
+            if len(id) > 50:
+                raise Exception('id must be less than 50 digits.')
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+        try:
+            board = article.objects.get(id=idx, created_by=id)
+        except article.DoesNotExist:
+            return JsonResponse({'error': 'Post does not exist.', 'success': False})
+        title = request.POST.get('title') or board.title
+        contents = request.POST.get('contents') or board.contents
+        try:
+            if len(title) > 255:
+                raise Exception('title must be less than 255 digits.')
+            if len(contents) > 3000:
+                raise Exception('contents must be less than 3000 digits.')
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+        board.modified_at = timezone.now()
+        board.title = title
+        board.contents = contents
+        board.save()
+        return JsonResponse({'success': True})
+
+
+def deletePost(request, idx):
+    access_token = request.GET.get('access_token') or request.POST.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token', 'success': False})
+    try:
+        decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
+        id = decoded_token.get('user_id')
+    except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
+        return JsonResponse({'error': f'{e}'})
+    if request.method == 'POST':  # 게시글 삭제
+        try:
+            if len(idx) > 50:
+                raise Exception('idx must be less than 50 digits.')
+            if len(id) > 50:
+                raise Exception('id must be less than 50 digits.')
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+
+        board = article.objects.get(idx=idx, id=id)
+        if board is None:
+            return JsonResponse({'error': 'Post does not exist.', 'success': False})
+        else:
+            board.delete_board()
+            return JsonResponse({'Delete': True})
+    else:
+        return JsonResponse({'error': 'Invalid request method', 'success': False})
+
+
+
+def viewArticle(request,idx):
     if request.method == 'GET':  # 게시글 단일 조회
         try:
             if len(id) > 50:
@@ -257,63 +304,8 @@ def Post(request, idx):
                                  'contents': f'{post.contents}', 'password': f'{post.password}'})
         except article.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist'})
-    elif request.method in ['POST'] and not request.POST.get('delete'):  # 게시글 수정
-        try:
-            if len(id) > 50:
-                raise Exception('id must be less than 50 digits.')
-            if not id:
-                raise Exception('Missing id.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
-        try:
-            board = article.objects.get(idx=idx, id=id)
-        except article.DoesNotExist:
-            return JsonResponse({'error': 'Post does not exist.', 'success': False})
-        title = request.POST.get('title') or board.title
-        contents = request.POST.get('contents') or board.contents
-        password = request.POST.get('password') or board.password
-        try:
-            if len(title) > 255:
-                raise Exception('title must be less than 255 digits.')
-            if len(contents) > 3000:
-                raise Exception('contents must be less than 3000 digits.')
-            if len(password) > 255:
-                raise Exception('password must be less than 255 digits.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
-        if password:
-            board.title = title
-            board.contents = contents
-            board.password = password
-        else:
-            board.title = title
-            board.contents = contents
-        board.save()
-        return JsonResponse({'success': True})
-    elif request.method == 'POST' and request.POST.get('delete'):  # 게시글 삭제
-        password = request.POST.get('password')
-        try:
-            if len(password) > 255:
-                raise Exception('Password must be less than 255 digits.')
-            if len(id) > 50:
-                raise Exception('id must be less than 50 digits.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
-
-        board = article.objects.get(idx=idx, id=id)
-        if board is None:
-            return JsonResponse({'error': 'Post does not exist.', 'success': False})
-        elif board.password != password:
-            return JsonResponse({'error': 'Wrong password.', 'success': False})
-        else:
-            board.delete_board()
-            return JsonResponse({'Delete': True})
     else:
-        return JsonResponse({'error': 'Invalid request method', 'success': False})
-
-
-
-
+        return JsonResponse({'error': 'Invalid request method.'})
 
 
 
@@ -459,3 +451,8 @@ def flag(request):
         return HttpResponse("Marshmallow{E3sT3R_3gg!}")
     else:
         return JsonResponse({'Status code': '404'})
+
+def checkLength(kwarg, length):
+    if len(kwarg) > length:
+        return True
+    return False
