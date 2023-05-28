@@ -9,7 +9,7 @@ urlpatterns = [ #매핑 패턴
     path('api/signup', views.signup),
     path('api/refresh-token',views.getAccessToken),
 
-    path('articles', views.ViewPost),
+    path('articles', views.LoadPost),
     path('articles/form', views.writePost),
     path('articles/<int:idx>/form', views.editPost),
     path('articles/<int:idx>/delete', views.deletePost),

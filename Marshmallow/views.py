@@ -164,12 +164,15 @@ def writePost(request):
         title = request.POST.get('title')
         if checkLength(user_id, 50) or checkLength(title, 255) or checkLength(content, 10000) or checkLength(hashtag,255):
             return JsonResponse({'error': False})
-        board = article(id=idx, title=title, content=content, created_by=user_id,hashtag=hashtag,created_at = timezone.now())
+
+        if all(var is None for var in [title, content, user_id, hashtag]):
+            return JsonResponse({'error': False})
+        board = article(id=idx,title=title, content=content, created_by=user_id,hashtag=hashtag,created_at=timezone.now())
         board.save()
         return JsonResponse({'success': True})
 
 
-def ViewPost(request):
+def LoadPost(request):
     access_token = request.POST.get('access_token') or request.GET.get('access_token')
     if not access_token:
         return JsonResponse({'error': 'You need an Access Token', 'success': False})
@@ -182,42 +185,37 @@ def ViewPost(request):
     if request.method == 'GET':  # 게시글 페이징 , 게시글 다수 조회
         searchValue = request.GET.get('searchValue')
         searchType = request.GET.get('searchType')
-        if checkLength(id,50) or checkLength(searchValue,255) or checkLength(searchType,50):
-            return JsonResponse({'error': False})
-        if searchValue or searchType:
-            search_posts(searchValue,searchType,id)
+        if searchValue and searchType:
+            if any(checkLength(var, 50) for var in [user_id, searchValue, searchType]):
+                return JsonResponse({'success': False})
+            return search_posts(searchValue, searchType, user_id)
+        if searchValue and not searchType:
+            if any(checkLength(var, 50) for var in [user_id, searchValue]):
+                return JsonResponse({'success': False})
+            return search_posts(searchValue, searchType, user_id)
         else:
-            paginator = Paginator(article.objects.filter(created_by=id), 10)
-            page_number = request.GET.get('number')
+            paginator = Paginator(article.objects.filter(created_by=user_id), 10)
+            page_number = int(request.GET.get('number'))
             if not page_number:
                 page_number = 1
+            if page_number > 99999:
+                return JsonResponse({'error': False})
             page_obj = paginator.get_page(page_number)
             posts = page_obj.object_list
             if not posts:
-                return JsonResponse({'error': 'No posts', 'success': False})
+                return JsonResponse({'error': 'No posts', 'success': False, 'user': f'{user_id}'})
             response_data = {
                 'count': len(posts),
                 'num_pages': page_number,
-                'posts': [{'idx': post.idx, 'title': post.title,'content':post.contents, 'id': post.id} for post in posts],
+                'posts': [{'idx': post.id, 'title': post.title,'content':post.content, 'id': post.id} for post in posts],
             }
             return JsonResponse(response_data)
     else:
         return JsonResponse({'error': 'Invalid request method', 'success': False})
 
 def search_posts(searchValue,searchType,userId):
-    try:
-        if len(userId) > 50:
-            raise Exception('id must be less than 50 digits.')
-        if len(searchValue) > 300:
-            raise Exception('search word must be less than 300 digits.')
-        if len(searchType) > 300:
-            raise Exception('search word must be less than 300 digits.')
-    except Exception as e:
-        return JsonResponse({'error': str(e)})
     if searchType == 'TITLE':
         articles = article.objects.filter(title__contains=searchValue,created_by=userId)
-    elif searchType == 'NICKNAME':
-        articles = article.objects.filter(created_by__contains=searchValue,created_by=userId)
     elif searchType == 'ID':
         articles = article.objects.filter(id=searchValue,created_by=userId)
     elif searchType == 'CONTENT':
@@ -237,27 +235,21 @@ def editPost(request, idx):
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}'})
     if request.method == 'POST':  # 게시글 수정
-        try:
-            if len(id) > 50:
-                raise Exception('id must be less than 50 digits.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
+        if checkLength(id, 50):
+            return JsonResponse({'success': False})
         try:
             board = article.objects.get(id=idx, created_by=id)
         except article.DoesNotExist:
             return JsonResponse({'error': 'Post does not exist.', 'success': False})
         title = request.POST.get('title') or board.title
-        contents = request.POST.get('contents') or board.contents
-        try:
-            if len(title) > 255:
-                raise Exception('title must be less than 255 digits.')
-            if len(contents) > 3000:
-                raise Exception('contents must be less than 3000 digits.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
+        contents = request.POST.get('contents') or board.content
+        hashtag = request.POST.get('hashtag') or board.hashtag
+        if checkLength(title, 255) or checkLength(contents, 3000) or checkLength(hashtag,255):
+            return JsonResponse({'success': False})
         board.modified_at = timezone.now()
         board.title = title
-        board.contents = contents
+        board.hashtag = hashtag
+        board.content = contents
         board.save()
         return JsonResponse({'success': True})
 
@@ -272,15 +264,10 @@ def deletePost(request, idx):
     except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
         return JsonResponse({'error': f'{e}'})
     if request.method == 'POST':  # 게시글 삭제
-        try:
-            if len(idx) > 50:
-                raise Exception('idx must be less than 50 digits.')
-            if len(id) > 50:
-                raise Exception('id must be less than 50 digits.')
-        except Exception as e:
-            return JsonResponse({'error': str(e)})
+        if idx > 99999 or checkLength(id, 50):
+            return JsonResponse({'success': False})
 
-        board = article.objects.get(idx=idx, id=id)
+        board = article.objects.get(id=idx,created_by=id)
         if board is None:
             return JsonResponse({'error': 'Post does not exist.', 'success': False})
         else:
@@ -291,15 +278,20 @@ def deletePost(request, idx):
 
 
 
-def viewArticle(request,idx):
+def viewPost(request,idx):
+    access_token = request.GET.get('access_token') or request.POST.get('access_token')
+    if not access_token:
+        return JsonResponse({'error': 'You need Access Token', 'success': False})
+    try:
+        decoded_token = jwt.decode(access_token, secret_key, algorithms=['HS256'])
+        user_id = decoded_token.get('user_id')
+    except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidTokenError) as e:
+        return JsonResponse({'error': f'{e}'})
     if request.method == 'GET':  # 게시글 단일 조회
+        if idx > 99999 or checkLength(idx, 50):
+            return JsonResponse({'success': False})
         try:
-            if len(id) > 50:
-                raise Exception('id must be less than 50 digits.')
-        except Exception as e:
-            return JsonResponse({'error': f'{str(e)}'})
-        try:
-            post = article.objects.get(idx=idx, id=id)
+            post = article.objects.get(id=idx, created_by=user_id)
             return JsonResponse({'success': 'True', 'idx': f'{idx}', 'post': f'{post}', 'title': f'{post.title}',
                                  'contents': f'{post.contents}', 'password': f'{post.password}'})
         except article.DoesNotExist:

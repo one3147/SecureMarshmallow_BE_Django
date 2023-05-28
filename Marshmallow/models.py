@@ -30,7 +30,7 @@ class Marshmallow_User(models.Model): #유저 모델
 
 
 class article(models.Model):
-    id = models.BigAutoField(primary_key=True)
+    id = models.IntegerField(primary_key=True)
     created_at = models.DateTimeField()
     created_by = models.CharField(max_length=100)
     modified_at = models.DateTimeField(null=True)
