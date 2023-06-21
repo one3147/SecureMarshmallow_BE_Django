@@ -12,6 +12,7 @@ class Marshmallow_User(models.Model): #유저 모델
     password = models.CharField(max_length=255,null=False)
     name = models.CharField(max_length=100,null=False)
     email = models.EmailField(max_length=320,null=False)
+    refreshToken = models.CharField(max_length=1000, null=True)
     USERNAME_FIELD = 'id'
     REQUIRED_FIELDS = []
     @property
@@ -30,7 +31,7 @@ class Marshmallow_User(models.Model): #유저 모델
 
 
 class article(models.Model):
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     created_at = models.DateTimeField()
     created_by = models.CharField(max_length=100)
     modified_at = models.DateTimeField(null=True)
@@ -64,6 +65,8 @@ class image(models.Model):
     file_size = models.BigIntegerField(null=True)
     is_deleted = models.BooleanField(null=True)
     created_by = models.CharField(max_length=255, null=True, blank=True)
+    hashtag = models.CharField(max_length=255, null=True)
+
 
     def __str__(self):
         return self.file_name
